@@ -29,7 +29,7 @@ const Header = () => {
           </div>
         ) : (
           <button
-            className="bg-yellow py-1 px-5 text-white  font-semibold text-xs cursor-pointer rounded border-2 border-transparent hover:border-yellow hover:bg-transparent hover:text-yellow duration-200"
+            className="bg-slate-900 py-1 px-5 text-white  font-semibold text-xs cursor-pointer rounded border-2 border-transparent hover:border-yellow hover:bg-transparent hover:text-yellow duration-200"
             onClick={login}
           >
             Login
