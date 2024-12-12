@@ -8,7 +8,7 @@ const HomeCard = ({ icon, title, desc, bgColor, route }) => {
       <div className="flex md:h-full items-center md:flex-col md:items-start md:justify-between gap-2">
         <div
           className={`text-white text-2xl aspect-square md:h-12 flex items-center justify-center md:text-3xl 
-          md:bg-slate-400/40 group-hover:text- group-hover:scale-110 duration-200 md:p-2 md:border-[1px]
+          md: bg-slate-900 group-hover:text- group-hover:scale-110 duration-200 md:p-2 md:border-[1px]
            md:border-slate-300/40  rounded-lg`}
         >
           {icon}

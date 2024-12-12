@@ -32,7 +32,7 @@ const MeetGridCard = ({ user, micActive, peer }) => {
         <button
           className={`${
             pin
-              ? "bg-blue border-transparent"
+              ? "block p-6 bg-white bg-opacity-40 backdrop-filter backdrop-blur-lg rounded-xl shadow-xl border border-gray-200 border-opacity-20 transition-all "
               : "bg-slate-800/70 backdrop-blur border-gray"
           } md:border-2 border-[1px] aspect-square md:p-2.5 p-1.5 cursor-pointer md:rounded-xl rounded-lg text-white md:text-xl text-lg`}
           onClick={() => {

@@ -15,7 +15,9 @@ import NewRoom from "../page/NewRoom";
 const App = () => {
   return (
     <div className="flex">
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       <div className="max-h-screen overflow-auto w-full">
         <Header />
         <Routes>
@@ -28,5 +30,6 @@ const App = () => {
     </div>
   );
 };
+
 
 export default App;

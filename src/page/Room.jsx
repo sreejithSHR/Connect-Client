@@ -232,11 +232,11 @@ const Room = () => {
             user && (
               <motion.div
                 layout
-                className="flex flex-row bg-darkBlue2 text-white w-full"
+                className="flex flex-row bg-gradient-to-r from-zinc-800 to-slate-950 text-white w-full"
               >
                 <motion.div
                   layout
-                  className="flex flex-col bg-darkBlue2 justify-between w-full"
+                  className="flex flex-col bg-gradient-to-r from-zinc-800 to-slate-950 justify-between w-full"
                 >
                   <div
                     className="flex-shrink-0 overflow-y-scroll p-3"

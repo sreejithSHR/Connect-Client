@@ -7,9 +7,9 @@ import { AiOutlineLogout as LogOutIcon } from "react-icons/ai";
 const Header = () => {
   const { user, login, logout } = useAuth();
   return (
-    <div className="h-16 px-3 bg-darkBlue1 text-slate-300 w-full flex items-center border-b-2 border-lightGray">
-      <div className="flex-grow font-semibold">
-        <Link to="/">Sonic Meet</Link>
+    <div className="h-16 px-3 bg-black text-slate-300 w-full flex items-center border-b-2 border-lightGray">
+      <div className="flex-grow font-semibold font-poppins text-centermd:text-7xl text-center  text-2xl text-white">
+        <Link to="/">Connect</Link>
       </div>
       <div>
         {user ? (
