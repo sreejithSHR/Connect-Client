@@ -85,7 +85,7 @@ const Room = () => {
   useEffect(() => {
     const unsub = () => {
       socket.current = io.connect(
-        "https://connect-backend-delta.vercel.app/"
+        "https://connect-backend-2s1a.onrender.com/"
         // process.env.SOCKET_BACKEND_URL || "http://localhost:5000"
       );
       socket.current.on("message", (data) => {
