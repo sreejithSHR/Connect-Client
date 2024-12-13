@@ -16,7 +16,7 @@ const App = () => {
   return (
     <div className="flex">
       <div className="hidden md:block">
-        <Sidebar />
+        
       </div>
       <div className="max-h-screen overflow-auto w-full">
         <Header />
