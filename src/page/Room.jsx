@@ -13,7 +13,7 @@ import { MdCallEnd as CallEndIcon } from "react-icons/md";
 import { MdClear as ClearIcon } from "react-icons/md";
 import { AiOutlineLink as LinkIcon } from "react-icons/ai";
 import { MdOutlineContentCopy as CopyToClipboardIcon } from "react-icons/md";
-// import { MdScreenShare as ScreenShareIcon } from "react-icons/md";
+import { MdScreenShare as ScreenShareIcon } from "react-icons/md";
 import { IoVideocamSharp as VideoOnIcon } from "react-icons/io5";
 import { IoVideocamOff as VideoOffIcon } from "react-icons/io5";
 import { AiOutlineShareAlt as ShareIcon } from "react-icons/ai";
@@ -38,6 +38,7 @@ import Peer from "simple-peer";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import Loading from "../components/Loading";
+import ScreenShareButton from "../components/ScreenShareButton";
 
 const Room = () => {
   const [loading, setLoading] = useState(true);
@@ -400,14 +401,18 @@ const Room = () => {
                         </button>
                       </div>
                       <div className="flex gap-2">
-                        {/* <div>
-                          <button
-                            className={`bg-slate-800/70 backdrop-blur border-gray
-          border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
-                          >
-                            <ScreenShareIcon size={22} />
-                          </button>
-                        </div> */}
+                        { <div>
+                          
+  <ScreenShareButton
+  icon={<ScreenShareIcon size={22} />}
+    peersRef={peersRef}
+    localVideo={localVideo}
+    onScreenShareEnd={() => {
+      console.log("Screen sharing ended");
+      // Perform additional cleanup if necessary
+    }}
+  />
+</div> }
                         <div>
                           <button
                             className={`bg-slate-800/70 backdrop-blur border-gray
