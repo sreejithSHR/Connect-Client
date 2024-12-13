@@ -3,13 +3,13 @@ import React from "react";
 const HomeCard = ({ icon, title, desc, bgColor, route }) => {
   return (
     <div
-      className={` p-3 md:p-6 rounded md:rounded-2xl md:h-52 md:w-auto w-full md:aspect-square group ${bgColor}`}
+      className={` ${bgColor} rounded-xl shadow-xl border border-white border-opacity-20 transition-all hover:scale-105 p-6`}
     >
       <div className="flex md:h-full items-center md:flex-col md:items-start md:justify-between gap-2">
         <div
           className={`text-white text-2xl aspect-square md:h-12 flex items-center justify-center md:text-3xl 
           md: bg-slate-900 group-hover:text- group-hover:scale-110 duration-200 md:p-2 md:border-[1px]
-           md:border-slate-300/40  rounded-lg`}
+           md:border-white  rounded-lg`}
         >
           {icon}
         </div>

@@ -404,7 +404,7 @@ const Room = () => {
                         { <div>
                           
   <ScreenShareButton
-  icon={<ScreenShareIcon size={22} />}
+    icon={<ScreenShareIcon size={22} />}
     peersRef={peersRef}
     localVideo={localVideo}
     onScreenShareEnd={() => {
