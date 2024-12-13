@@ -236,7 +236,7 @@ const Room = () => {
               >
                 <motion.div
                   layout
-                  className="flex flex-col bg-gradient-to-r from-zinc-800 to-slate-950 justify-between w-full"
+                  className="flex flex-col  justify-between w-full"
                 >
                   <div
                     className="flex-shrink-0 overflow-y-scroll p-3"
@@ -263,7 +263,7 @@ const Room = () => {
                           <button
                             className={`${
                               pin
-                                ? "bg-blue border-transparent"
+                                ? "bg-cyan-950 border-transparent"
                                 : "bg-slate-800/70 backdrop-blur border-gray"
                             } md:border-2 border-[1px] aspect-square md:p-2.5 p-1.5 cursor-pointer md:rounded-xl rounded-lg text-white md:text-xl text-lg`}
                             onClick={() => setPin(!pin)}
@@ -293,7 +293,7 @@ const Room = () => {
                           {/* <button
                           className={`${
                             micOn
-                              ? "bg-blue border-transparent"
+                              ? "bg-cyan-950 border-transparent"
                               : "bg-slate-800/70 backdrop-blur border-gray"
                           } border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                           onClick={() => {
@@ -328,14 +328,14 @@ const Room = () => {
                       ))}
                     </motion.div>
                   </div>
-                  <div className="w-full h-16 bg-darkBlue1 border-t-2 border-lightGray p-3">
+                  <div className="w-full h-16 bg-gradient-to-b from-slate-700 to-zinc-900 border-t-2 border-lightGray p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">
                         <div>
                           <button
                             className={`${
                               micOn
-                                ? "bg-blue border-transparent"
+                                ? "bg-cyan-950 border-transparent"
                                 : "bg-slate-800/70 backdrop-blur border-gray"
                             } border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                             onClick={() => {
@@ -358,7 +358,7 @@ const Room = () => {
                           <button
                             className={`${
                               videoActive
-                                ? "bg-blue border-transparent"
+                                ? "bg-cyan-950 border-transparent"
                                 : "bg-slate-800/70 backdrop-blur border-gray"
                             } border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                             onClick={() => {
@@ -378,7 +378,7 @@ const Room = () => {
                         </div>
                         {/* <div>
                           <button
-                            className={`bg-blue border-transparent
+                            className={`bg-cyan-950 border-transparent
            border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                           >
                             <UsersIcon />
@@ -387,7 +387,7 @@ const Room = () => {
                       </div>
                       <div className="flex-grow flex justify-center">
                         <button
-                          className="py-2 px-4 flex items-center gap-2 rounded-lg bg-red"
+                          className="py-2 px-4 flex items-center gap-2 rounded-3xl bg-red"
                           onClick={() => {
                             navigate("/");
                             window.location.reload();
@@ -421,7 +421,7 @@ const Room = () => {
                           <button
                             className={`${
                               showChat
-                                ? "bg-blue border-transparent"
+                                ? "bg-cyan-950 border-transparent"
                                 : "bg-slate-800/70 backdrop-blur border-gray"
                             } border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                             onClick={() => {
@@ -438,17 +438,17 @@ const Room = () => {
                 {showChat && (
                   <motion.div
                     layout
-                    className="flex flex-col w-[30%] flex-shrink-0 border-l-2 border-lightGray"
+                    className="  flex flex-col w-[30%] flex-shrink-0  border-lightGray"
                   >
                     <div
-                      className="flex-shrink-0 overflow-y-scroll"
+                      className="flex-shrink-0 px-4 overflow-y-scroll"
                       style={{
                         height: "calc(100vh - 128px)",
                       }}
                     >
-                      <div className="flex flex-col bg-darkBlue1 w-full border-b-2 border-gray">
+                      <div className="flex flex-col md-3   bg-zinc-800 bg-opacity-40 backdrop-filter backdrop-blur-lg  shadow-xl border border-gray-200 border-opacity-20  rounded-3xl p-4 py-2  border-b-2 border-gray">
                         <div
-                          className="flex items-center w-full p-3 cursor-pointer"
+                          className="flex items-center  w-full p-3 cursor-pointer"
                           onClick={() => setParticpentsOpen(!particpentsOpen)}
                         >
                           <div className="text-xl text-slate-400">
@@ -467,7 +467,7 @@ const Room = () => {
                           layout
                           className={`${
                             particpentsOpen ? "block" : "hidden"
-                          } flex flex-col w-full mt-2 h-full max-h-[50vh] overflow-y-scroll gap-3 p-2 bg-blue-600`}
+                          } flex flex-col rou w-full mt-2 h-full max-h-[50vh] overflow-y-scroll gap-3 p-2 bg-cyan-950-600`}
                         >
                           <AnimatePresence>
                             <motion.div
@@ -477,7 +477,7 @@ const Room = () => {
                               transition={{ duration: 0.08 }}
                               exit={{ opacity: 0 }}
                               whileHover={{ scale: 1.05 }}
-                              className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-lg"
+                              className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-full "
                             >
                               <img
                                 src={
@@ -500,7 +500,7 @@ const Room = () => {
                                 exit={{ opacity: 0 }}
                                 key={user.peerID}
                                 whileHover={{ scale: 1.05 }}
-                                className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-lg"
+                                className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-full"
                               >
                                 <img
                                   src={
@@ -518,8 +518,8 @@ const Room = () => {
                           </AnimatePresence>
                         </motion.div>
                       </div>
-                      <div className="h-full">
-                        <div className="flex items-center bg-darkBlue1 p-3 w-full">
+                      <div className="py-4 h-full">
+                        <div className="flex rounded-3xl items-center bg-zinc-800 p-3 w-full">
                           <div className="text-xl text-slate-400">
                             <ChatIcon />
                           </div>
@@ -555,7 +555,7 @@ const Room = () => {
                                 alt={msg?.user.name}
                                 className="h-8 w-8 aspect-square rounded-full object-cover"
                               />
-                              <p className="bg-darkBlue1 py-2 px-3 text-xs w-auto max-w-[87%] rounded-lg border-2 border-lightGray">
+                              <p className="bg-darkcyan-9501 py-2 px-3 text-xs w-auto max-w-[87%] rounded-3xl border-2 border-lightGray">
                                 {msg?.message}
                               </p>
                             </motion.div>
@@ -563,29 +563,29 @@ const Room = () => {
                         </motion.div>
                       </div>
                     </div>
-                    <div className="w-full h-16 bg-darkBlue1 border-t-2 border-lightGray p-3">
+                    <div className="w-full h-16 bg-darkcyan-9501 border-t-2 border-lightGray p-3">
                       <form onSubmit={sendMessage}>
                         <div className="flex items-center gap-2">
-                          <div className="relative flex-grow">
+                          <div className="relative text-slate-950 flex-grow">
                             <input
                               type="text"
                               value={msgText}
                               onChange={(e) => setMsgText(e.target.value)}
-                              className="h-10 p-3 w-full text-sm text-darkBlue1 outline-none  rounded-lg"
+                              className="h-10 p-3 w-full text-sm text-darkcyan-9501 outline-none  rounded-lg"
                               placeholder="Enter message.. "
                             />
                             {msgText && (
                               <button
                                 type="button"
                                 onClick={() => setMsgText("")}
-                                className="bg-transparent text-darkBlue2 absolute top-0 right-0 text-lg cursor-pointer p-2  h-full"
+                                className="bg-transparent text-darkcyan-9502 absolute top-0 right-0 text-lg cursor-pointer p-2  h-full"
                               >
                                 <ClearIcon />
                               </button>
                             )}
                           </div>
                           <div>
-                            <button className="bg-blue h-10 text-md aspect-square rounded-lg flex items-center justify-center">
+                            <button className="bg-cyan-950 h-10 text-md aspect-square rounded-lg flex items-center justify-center">
                               <SendIcon />
                             </button>
                           </div>
@@ -642,9 +642,9 @@ const Room = () => {
           )}
         </AnimatePresence>
       ) : (
-        <div className="h-full bg-darkBlue2 flex items-center justify-center">
+        <div className="h-full bg-darkcyan-9502 flex items-center justify-center">
           <button
-            className="flex items-center gap-2 p-1 pr-3 rounded text-white font-bold bg-blue transition-all"
+            className="flex items-center gap-2 p-1 pr-3 rounded text-white font-bold bg-cyan-950 transition-all"
             onClick={login}
           >
             <div className="p-2 bg-white rounded">
