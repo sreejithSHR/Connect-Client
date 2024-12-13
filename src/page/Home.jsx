@@ -43,13 +43,14 @@ export default function Home() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link href={`/room/${roomId}`} className="block w-full">
+          <Link to={`/room/${roomId}`} className="block w-full">
               <HomeCard
                 title="New Meeting"
                 desc="Create a new meeting"
                 icon={<NewCallIcon />}
-                iconBgColor="bg-yellow-400"
-                bgColor="bg-white bg-opacity-40 hover:bg-opacity-20"
+                iconBgColor="lightYellows"
+                bgColor=" block p-6 bg-white bg-opacity-40 backdrop-filter backdrop-blur-lg rounded-xl shadow-xl border border-gray-200 border-opacity-20 transition-all hover:bg-opacity-20 hover:scale-105"
+                route={`/room/`}
               />
             </Link>
             <HomeCard
