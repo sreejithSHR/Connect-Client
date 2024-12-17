@@ -94,6 +94,7 @@ const ScreenShareButton = ({ peersRef, localVideo, onScreenShareEnd }) => {
         <MdStopScreenShare size={22} />
       ) : (
         <ScreenShareIcon size={22} />
+        
       )}
     </button>
   );

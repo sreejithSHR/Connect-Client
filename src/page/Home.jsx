@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import HomeCard from "../components/HomeCard";
 import Calendar from "../components/Calendar";
 
+
 import { v4 as uuid } from "uuid";
 
 // icons
@@ -53,6 +54,7 @@ export default function Home() {
                 route={`/room/`}
               />
             </Link>
+            
             <HomeCard
               title="Join Meeting"
               desc="via invitation link"
@@ -60,6 +62,16 @@ export default function Home() {
               iconBgColor="bg-blue-400"
               bgColor="bg-white bg-opacity-10 hover:bg-opacity-20"
             />
+            <Link to={`/stream/${roomId}`} className="block w-full">
+              <HomeCard
+                title="Stream"
+                desc="Create a new meeting"
+                icon={<NewCallIcon />}
+                iconBgColor="lightYellows"
+                bgColor=" block p-6 bg-white bg-opacity-40 backdrop-filter backdrop-blur-lg rounded-xl shadow-xl border border-gray-200 border-opacity-20 transition-all hover:bg-opacity-20 hover:scale-105"
+                route={`/stream/`}
+              />
+            </Link>
           </div>
         </div>
         <div className="md:w-1/2 space-y-4">

@@ -22,6 +22,7 @@ import { IoMicOff as MicOffIcon } from "react-icons/io5";
 import { BsPin as PinIcon } from "react-icons/bs";
 import { BsPinFill as PinActiveIcon } from "react-icons/bs";
 
+
 import { QRCode } from "react-qrcode-logo";
 import MeetGridCard from "../components/MeetGridCard";
 
@@ -291,6 +292,7 @@ const Room = () => {
                         )}
 
                         <div className="absolute bottom-4 right-4">
+                          
                           {/* <button
                           className={`${
                             micOn
@@ -332,6 +334,9 @@ const Room = () => {
                   <div className="w-full h-16 bg-gradient-to-b from-slate-700 to-zinc-900 border-t-2 border-lightGray p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">
+                      <div>
+                      
+                        </div>
                         <div>
                           <button
                             className={`${
@@ -377,14 +382,10 @@ const Room = () => {
                             {videoActive ? <VideoOnIcon /> : <VideoOffIcon />}
                           </button>
                         </div>
-                        {/* <div>
-                          <button
-                            className={`bg-cyan-950 border-transparent
-           border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
-                          >
-                            <UsersIcon />
-                          </button>
-                        </div> */}
+                        { <div>
+                          
+                          
+                        </div> }
                       </div>
                       <div className="flex-grow flex justify-center">
                         <button
@@ -413,6 +414,7 @@ const Room = () => {
     }}
   />
 </div> }
+
                         <div>
                           <button
                             className={`bg-slate-800/70 backdrop-blur border-gray
@@ -568,35 +570,39 @@ const Room = () => {
                         </motion.div>
                       </div>
                     </div>
-                    <div className="w-full h-16 bg-darkcyan-9501 border-t-2 border-lightGray p-3">
-                      <form onSubmit={sendMessage}>
-                        <div className="flex items-center gap-2">
-                          <div className="relative text-slate-950 flex-grow">
-                            <input
-                              type="text"
-                              value={msgText}
-                              onChange={(e) => setMsgText(e.target.value)}
-                              className="h-10 p-3 w-full text-sm text-darkcyan-9501 outline-none  rounded-lg"
-                              placeholder="Enter message.. "
-                            />
-                            {msgText && (
-                              <button
-                                type="button"
-                                onClick={() => setMsgText("")}
-                                className="bg-transparent text-darkcyan-9502 absolute top-0 right-0 text-lg cursor-pointer p-2  h-full"
-                              >
-                                <ClearIcon />
-                              </button>
-                            )}
-                          </div>
-                          <div>
-                            <button className="bg-cyan-950 h-10 text-md aspect-square rounded-lg flex items-center justify-center">
-                              <SendIcon />
-                            </button>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
+                    <div className="w-full h-16 bg-darkcyan-9501 border-t-2 border-lightGray p-2 sm:p-3">
+  <form onSubmit={sendMessage}>
+    <div className="flex items-center gap-2">
+      {/* Input Container */}
+      <div className="relative flex-grow">
+        <input
+          type="text"
+          value={msgText}
+          onChange={(e) => setMsgText(e.target.value)}
+          className="h-10 p-2 sm:p-3 w-full text-sm text-darkcyan-9501 outline-none rounded-lg"
+          placeholder="Enter message.."
+        />
+        {msgText && (
+          <button
+            type="button"
+            onClick={() => setMsgText("")}
+            className="bg-transparent text-darkcyan-9502 absolute top-0 right-0 text-lg cursor-pointer p-2 h-full flex items-center"
+          >
+            <ClearIcon />
+          </button>
+        )}
+      </div>
+      {/* Send Button */}
+      <button
+        type="submit"
+        className="bg-cyan-950 h-10 w-10 sm:aspect-square rounded-lg flex items-center justify-center"
+      >
+        <SendIcon />
+      </button>
+    </div>
+  </form>
+</div>
+
                   </motion.div>
                 )}
               </motion.div>
@@ -606,7 +612,7 @@ const Room = () => {
             <div className="fixed flex items-center justify-center top-0 left-0 h-full w-full z-30 bg-slate-800/60 backdrop-blur">
               <div className="bg-white  p-3 rounded shadow shadow-white w-full mx-auto max-w-[500px] relative">
                 <div className="flex items-center justify-between">
-                  <div className="text-slate-800">
+                  <div className="text-">
                     Share the link with someone to join the room
                   </div>
                   <div>

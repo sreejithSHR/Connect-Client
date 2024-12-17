@@ -1,6 +1,3 @@
-import React from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
-
 // components
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -10,6 +7,9 @@ import Home from "../page/Home";
 import Room from "../page/Room";
 import NotFound from "../page/NotFound";
 import NewRoom from "../page/NewRoom";
+import Stream from "../page/Stream";
+
+import { Routes, Route, useLocation } from "react-router-dom";
 
 const App = () => {
   const location = useLocation();
@@ -29,8 +29,8 @@ const App = () => {
         <Header />
         <Routes>
           <Route path="/" element={<Home />} />
-          {/* <Route path="/room/:roomID" element={<NewRoom />} /> */}
           <Route path="/room/:roomID" element={<Room />} />
+          <Route path="/stream/:roomID" element={<Stream />} /> {/* Updated route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
