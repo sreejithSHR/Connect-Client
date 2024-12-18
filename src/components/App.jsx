@@ -15,7 +15,7 @@ const App = () => {
   const location = useLocation();
 
   // Check if the current route is `/room/:roomID`
-  const hideSidebar = location.pathname.startsWith("/room");
+  const hideSidebar = location.pathname.startsWith("/room")|| location.pathname.startsWith("/stream");
 
   return (
     <div className="flex">
