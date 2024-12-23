@@ -106,14 +106,15 @@ export default function Home() {
           <Calendar />
         </div>
       </div>
+      {/*copywright*/}
       <div className="pt-16 items-center font-poppins text-slate-400">
-  <p>
-    Created By <a className="underline" href="https://envidoxsolutions.com" target="_blank" rel="noopener noreferrer">
-      Envidox Solutions
-    </a>
-  </p>
- 
-</div>
+        <p>
+          Created By <a className="underline" href="https://envidoxsolutions.com" target="_blank" rel="noopener noreferrer">
+            Envidox Solutions
+          </a>
+        </p>
+      
+      </div>
 
 
       {/* Stream Modal */}
