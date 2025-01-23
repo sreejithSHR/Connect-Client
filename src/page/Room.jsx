@@ -579,7 +579,7 @@ const Room = () => {
           type="text"
           value={msgText}
           onChange={(e) => setMsgText(e.target.value)}
-          className="h-10 p-2 sm:p-3 w-full text-sm text-darkcyan outline-none rounded-lg"
+          className="h-10 p-2 sm:p-3 w-full text-sm text-darkcyan-9501 outline-none rounded-lg"
           placeholder="Enter message.."
         />
         {msgText && (
@@ -653,7 +653,7 @@ const Room = () => {
           )}
         </AnimatePresence>
       ) : (
-        <div className="h-auto pt-14 bg-darkcyan-9502 flex items-center justify-center">
+        <div className="h-full bg-darkcyan-9502 flex items-center justify-center">
           <button
             className="flex items-center gap-2 p-1 pr-3 rounded text-white font-bold bg-cyan-950 transition-all"
             onClick={login}
