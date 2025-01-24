@@ -599,7 +599,7 @@ const Room = () => {
                               type="text"
                               value={msgText}
                               onChange={(e) => setMsgText(e.target.value)}
-                              className="h-10 p-2 sm:p-3 w-full text-sm text-darkcyan outline-none rounded-lg"
+                              className="h-10 p-2 sm:p-3 w-full text-sm text-darkBlue2 outline-none rounded-lg"
                               placeholder="Enter message.."
                             />
                             {msgText && (
