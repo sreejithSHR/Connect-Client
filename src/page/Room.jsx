@@ -234,7 +234,7 @@ const Room = () => {
             user && (
               <motion.div
                 layout
-                className="flex flex-row bg-gradient-to-r from-zinc-800 to-slate-950 text-white w-full"
+                className="flex flex-row bg-gradient-to-r from-zinc-800 to-slate-950 text-white w-auto"
               >
                 <motion.div
                   layout
