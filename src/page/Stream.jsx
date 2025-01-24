@@ -66,6 +66,8 @@ const Stream = () => {
   // user
   const { user, login } = useAuth();
 
+  const isMobile = window.innerWidth <= 768; // Replace with a hook or utility for responsiveness.
+
   const [particpentsOpen, setParticpentsOpen] = useState(true);
   const location = useLocation();
   const { streamTitle = "Untitled Stream", streamDescription = "No description available." } = location.state || {};
@@ -470,16 +472,34 @@ const Stream = () => {
                   </div>
                 </motion.div>
                 {showChat && (
-                  <motion.div
-                    layout
-                    className="  flex flex-col w-[30%] flex-shrink-0  border-lightGray"
-                  >
-                    <div
-                      className="flex-shrink-0 px-4 overflow-y-scroll"
-                      style={{
-                        height: "calc(100vh - 128px)",
-                      }}
-                    >
+                                  <motion.div
+                                    layout
+                                    className={`flex flex-col ${
+                                      isMobile ? "fixed inset-0 bg-black bg-opacity-50 z-50" : "w-[30%] flex-shrink-0"
+                                    } border-lightGray`}
+                                  >
+                                    {/* Mobile Header for Close Button */}
+                                    {isMobile && (
+                                      <div className="flex items-center justify-between bg-zinc-900 text-white p-4">
+                                        <h2 className="text-lg font-medium">Chat</h2>
+                                        <button
+                                          onClick={() => setshowChat(false)}
+                                          className="text-lg text-gray-300 hover:text-white"
+                                        >
+                                          Close
+                                        </button>
+                                      </div>
+                                    )}
+                
+                                    {/* Participants List */}
+                                    <div
+                                      className={`${
+                                        isMobile ? "p-4" : "px-4"
+                                      } flex-shrink-0 overflow-y-scroll flex-grow`}
+                                      style={{
+                                        height: isMobile ? "calc(100vh - 112px)" : "calc(100vh - 128px)",
+                                      }}
+                                    >
                       <div className="flex flex-col md-3 bg-zinc-800 bg-opacity-40 backdrop-filter backdrop-blur-lg shadow-xl border border-gray-200 border-opacity-20 rounded-3xl p-4 py-2 border-b-2 border-gray">
   {/* Header with Viewer Count */}
   <div
@@ -616,7 +636,7 @@ const Stream = () => {
                               type="text"
                               value={msgText}
                               onChange={(e) => setMsgText(e.target.value)}
-                              className="h-10 p-2 sm:p-3 w-full text-sm text-darkcyan-9501 outline-none rounded-lg"
+                              className="h-10 p-2 sm:p-3 w-full text-sm text-darkBlue2 outline-none rounded-lg"
                               placeholder="Enter message.."
                             />
                             {msgText && (
