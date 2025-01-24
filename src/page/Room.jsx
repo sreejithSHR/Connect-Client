@@ -64,8 +64,6 @@ const Room = () => {
 
   // user
   const { user, login } = useAuth();
-  const isMobile = window.innerWidth <= 768; // Replace with a hook or utility for responsiveness.
-
 
   const [particpentsOpen, setParticpentsOpen] = useState(true);
 
@@ -444,145 +442,168 @@ const Room = () => {
                   </div>
                 </motion.div>
                 {showChat && (
-  <motion.div
-    layout
-    className={`flex flex-col ${
-      isMobile ? "fixed inset-0 bg-black bg-opacity-50 z-50" : "w-[30%] flex-shrink-0"
-    } border-lightGray`}
-  >
-    {/* Mobile Header for Close Button */}
-    {isMobile && (
-      <div className="flex items-center justify-between bg-zinc-900 text-white p-4">
-        <h2 className="text-lg font-medium">Chat</h2>
-        <button
-          onClick={() => setshowChat(false)}
-          className="text-lg text-gray-300 hover:text-white"
-        >
-          Close
-        </button>
-      </div>
-    )}
+                  <motion.div
+                    layout
+                    className="  flex flex-col w-[30%] flex-shrink-0  border-lightGray"
+                  >
+                    <div
+                      className="flex-shrink-0 px-4 overflow-y-scroll"
+                      style={{
+                        height: "calc(100vh - 128px)",
+                      }}
+                    >
+                      <div className="flex flex-col md-3   bg-zinc-800 bg-opacity-40 backdrop-filter backdrop-blur-lg  shadow-xl border border-gray-200 border-opacity-20  rounded-3xl p-4 py-2  border-b-2 border-gray">
+                        <div
+                          className="flex items-center  w-full p-3 cursor-pointer"
+                          onClick={() => setParticpentsOpen(!particpentsOpen)}
+                        >
+                          <div className="text-xl text-slate-400">
+                            <UsersIcon />
+                          </div>
+                          <div className="ml-2 text-sm font">Particpents</div>
+                          <div
+                            className={`${
+                              particpentsOpen && "rotate-180"
+                            } transition-all  ml-auto text-lg`}
+                          >
+                            <DownIcon />
+                          </div>
+                        </div>
+                        <motion.div
+                          layout
+                          className={`${
+                            particpentsOpen ? "block" : "hidden"
+                          } flex flex-col rou w-full mt-2 h-full max-h-[50vh] overflow-y-scroll gap-3 p-2 bg-cyan-950-600`}
+                        >
+                          <AnimatePresence>
+                            <motion.div
+                              layout
+                              initial={{ x: 100, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ duration: 0.08 }}
+                              exit={{ opacity: 0 }}
+                              whileHover={{ scale: 1.05 }}
+                              className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-full "
+                            >
+                              <img
+                                src={
+                                  user.photoURL ||
+                                  "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png"
+                                }
+                                alt={user.displayName || "Anonymous"}
+                                className="block w-8 h-8 aspect-square rounded-full mr-2"
+                              />
+                              <span className="font-medium text-sm">
+                                {user.displayName || "Anonymous"}
+                              </span>
+                            </motion.div>
+                            {peers.map((user) => (
+                              <motion.div
+                                layout
+                                initial={{ x: 100, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ duration: 0.08 }}
+                                exit={{ opacity: 0 }}
+                                key={user.peerID}
+                                whileHover={{ scale: 1.05 }}
+                                className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-full"
+                              >
+                                <img
+                                  src={
+                                    user.user.photoURL ||
+                                    "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png"
+                                  }
+                                  alt={user.user.name || "Anonymous"}
+                                  className="block w-8 h-8 aspect-square rounded-full mr-2"
+                                />
+                                <span className="font-medium text-sm">
+                                  {user.user.name || "Anonymous"}
+                                </span>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
+                      </div>
+                      <div className="py-4 h-full">
+                        <div className="flex rounded-3xl items-center bg-zinc-800 p-3 w-full">
+                          <div className="text-xl text-slate-400">
+                            <ChatIcon />
+                          </div>
+                          <div className="ml-2 text-sm font">Chat</div>
+                          <div
+                            className="ml-auto text-lg"
+                            onClick={() => setParticpentsOpen(!particpentsOpen)}
+                          >
+                            <DownIcon />
+                          </div>
+                        </div>
+                        <motion.div
+                          layout
+                          ref={chatScroll}
+                          className="p-3 h-full overflow-y-scroll flex flex-col gap-4"
+                        >
+                          {msgs.map((msg, index) => (
+                            <motion.div
+                              layout
+                              initial={{ x: msg.send ? 100 : -100, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ duration: 0.08 }}
+                              className={`flex gap-2 ${
+                                msg?.user.id === user?.uid
+                                  ? "flex-row-reverse"
+                                  : ""
+                              }`}
+                              key={index}
+                            >
+                              <img
+                                // src="https://avatars.githubusercontent.com/u/83828231"
+                                src={msg?.user.profilePic}
+                                alt={msg?.user.name}
+                                className="h-8 w-8 aspect-square rounded-full object-cover"
+                              />
+                              <p className="bg-darkcyan-9501 py-2 px-3 text-xs w-auto max-w-[87%] rounded-3xl border-2 border-lightGray">
+                                {msg?.message}
+                              </p>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      </div>
+                    </div>
+                    <div className="w-full h-16 bg-darkcyan-9501 border-t-2 border-lightGray p-2 sm:p-3">
+                      <form onSubmit={sendMessage}>
+                        <div className="flex items-center gap-2">
+                          {/* Input Container */}
+                          <div className="relative flex-grow">
+                            <input
+                              type="text"
+                              value={msgText}
+                              onChange={(e) => setMsgText(e.target.value)}
+                              className="h-10 p-2 sm:p-3 w-full text-sm text-darkcyan outline-none rounded-lg"
+                              placeholder="Enter message.."
+                            />
+                            {msgText && (
+                              <button
+                                type="button"
+                                onClick={() => setMsgText("")}
+                                className="bg-transparent text-darkcyan-9502 absolute top-0 right-0 text-lg cursor-pointer p-2 h-full flex items-center"
+                              >
+                                <ClearIcon />
+                              </button>
+                            )}
+                          </div>
+                          {/* Send Button */}
+                          <button
+                            type="submit"
+                            className="bg-cyan-950 h-10 w-10 sm:aspect-square rounded-lg flex items-center justify-center"
+                          >
+                            <SendIcon />
+                          </button>
+                        </div>
+                      </form>
+                    </div>
 
-    {/* Participants List */}
-    <div
-      className={`${
-        isMobile ? "p-4" : "px-4"
-      } flex-shrink-0 overflow-y-scroll flex-grow`}
-      style={{
-        height: isMobile ? "calc(100vh - 112px)" : "calc(100vh - 128px)",
-      }}
-    >
-      <div className="flex flex-col bg-zinc-800 bg-opacity-40 backdrop-filter backdrop-blur-lg shadow-xl border border-gray-200 border-opacity-20 rounded-3xl p-4 py-2 border-b-2 border-gray">
-        <div
-          className="flex items-center w-full p-3 cursor-pointer"
-          onClick={() => setParticpentsOpen(!particpentsOpen)}
-        >
-          <div className="text-xl text-slate-400">
-            <UsersIcon />
-          </div>
-          <div className="ml-2 text-sm font">Participants</div>
-          <div
-            className={`${
-              particpentsOpen && "rotate-180"
-            } transition-all ml-auto text-lg`}
-          >
-            <DownIcon />
-          </div>
-        </div>
-        <motion.div
-          layout
-          className={`${
-            particpentsOpen ? "block" : "hidden"
-          } flex flex-col w-full mt-2 max-h-[50vh] overflow-y-scroll gap-3 p-2 bg-cyan-950-600`}
-        >
-          <AnimatePresence>
-            <motion.div
-              layout
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.08 }}
-              exit={{ opacity: 0 }}
-              whileHover={{ scale: 1.05 }}
-              className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-full"
-            >
-              <img
-                src={
-                  user.photoURL ||
-                  "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png"
-                }
-                alt={user.displayName || "Anonymous"}
-                className="block w-8 h-8 aspect-square rounded-full mr-2"
-              />
-              <span className="font-medium text-sm">
-                {user.displayName || "Anonymous"}
-              </span>
-            </motion.div>
-            {peers.map((user) => (
-              <motion.div
-                layout
-                initial={{ x: 100, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.08 }}
-                exit={{ opacity: 0 }}
-                key={user.peerID}
-                whileHover={{ scale: 1.05 }}
-                className="p-2 flex bg-gray items-center transition-all hover:bg-slate-900 gap-2 rounded-full"
-              >
-                <img
-                  src={
-                    user.user.photoURL ||
-                    "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png"
-                  }
-                  alt={user.user.name || "Anonymous"}
-                  className="block w-8 h-8 aspect-square rounded-full mr-2"
-                />
-                <span className="font-medium text-sm">
-                  {user.user.name || "Anonymous"}
-                </span>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      </div>
-    </div>
-
-    {/* Chat Input Space */}
-    <div className="w-full bg-darkcyan-9501 border-t-2 border-lightGray p-3">
-      <form onSubmit={sendMessage}>
-        <div className="flex items-center gap-2">
-          {/* Input Field */}
-          <div className="relative flex-grow">
-            <input
-              type="text"
-              value={msgText}
-              onChange={(e) => setMsgText(e.target.value)}
-              className="h-10 p-3 w-full text-sm text-darkcyan-9501 outline-none rounded-lg"
-              placeholder="Enter message..."
-            />
-            {msgText && (
-              <button
-                type="button"
-                onClick={() => setMsgText("")}
-                className="absolute top-0 right-0 h-full p-2 text-lg text-darkcyan-9502 cursor-pointer"
-              >
-                <ClearIcon />
-              </button>
-            )}
-          </div>
-          {/* Send Button */}
-          <button
-            type="submit"
-            className="bg-cyan-950 h-10 w-10 rounded-lg flex items-center justify-center"
-          >
-            <SendIcon />
-          </button>
-        </div>
-      </form>
-    </div>
-  </motion.div>
-)}
-
-
+                  </motion.div>
+                )}
               </motion.div>
             )
           )}
