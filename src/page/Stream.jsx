@@ -46,7 +46,7 @@ const Stream = () => {
   const [localStream, setLocalStream] = useState(null);
   const navigate = useNavigate();
   const [micOn, setMicOn] = useState(true);
-  const [showChat, setshowChat] = useState(true);
+  const [showChat, setshowChat] = useState(true); 
   const [share, setShare] = useState(false);
   const [joinSound] = useState(new Audio(joinSFX));
   const { roomID } = useParams();
@@ -62,6 +62,16 @@ const Stream = () => {
   const [msgs, setMsgs] = useState([]);
   const [msgText, setMsgText] = useState("");
   const localVideo = useRef();
+
+  const [customHeight, setCustomHeight] = useState(window.innerHeight);
+  
+  useEffect(() => {
+    const updateHeight = () => {
+      setCustomHeight(window.innerHeight); // Update to account for keyboard or orientation
+    };
+
+    window.addEventListener("resize", updateHeight);
+    window.addEventListener("orientationchange", updateHeight);} )
 
   // user
   const { user, login } = useAuth();
@@ -477,10 +487,13 @@ const Stream = () => {
                                     className={`flex flex-col ${
                                       isMobile ? "fixed inset-0 bg-black bg-opacity-50 z-50" : "w-[30%] flex-shrink-0"
                                     } border-lightGray`}
+                                    style={{ height: `calc(${customHeight}px - 112px)` }}
+
                                   >
                                     {/* Mobile Header for Close Button */}
                                     {isMobile && (
-                                      <div className="flex items-center justify-between bg-zinc-900 text-white p-4">
+                                      <div className="flex items-center justify-between bg-zinc-900 text-white p-4"
+                                      style={{ height: customHeight }}>
                                         <h2 className="text-lg font-medium">Chat</h2>
                                         <button
                                           onClick={() => setshowChat(false)}
