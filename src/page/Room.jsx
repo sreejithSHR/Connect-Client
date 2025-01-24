@@ -331,7 +331,7 @@ const Room = () => {
                       ))}
                     </motion.div>
                   </div>
-                  <div className="w-full h-16 bg-gradient-to-b from-slate-700 to-zinc-900 border-t-2 border-lightGray p-3">
+                  <div className="w-auto h-16 bg-gradient-to-b from-slate-700 to-zinc-900 border-t-2 border-lightGray p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">
                       <div>
@@ -404,21 +404,20 @@ const Room = () => {
                       <div className="flex gap-2">
                         { <div>
                           
-  <ScreenShareButton
-    icon={<ScreenShareIcon size={22} />}
-    peersRef={peersRef}
-    localVideo={localVideo}
-    onScreenShareEnd={() => {
-      console.log("Screen sharing ended");
-      // Perform additional cleanup if necessary
-    }}
-  />
-</div> }
+                          <ScreenShareButton
+                            icon={<ScreenShareIcon size={22} />}
+                            peersRef={peersRef}
+                            localVideo={localVideo}
+                            onScreenShareEnd={() => {
+                              console.log("Screen sharing ended");
+                              // Perform additional cleanup if necessary
+                            }}
+                          />
+                      </div> }
 
                         <div>
                           <button
-                            className={`bg-slate-800/70 backdrop-blur border-gray
-          border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
+                            className={`bg-slate-800/70 backdrop-blur border-gray border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                             onClick={() => setShare(true)}
                           >
                             <ShareIcon size={22} />
