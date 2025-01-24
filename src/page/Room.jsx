@@ -238,7 +238,7 @@ const Room = () => {
               >
                 <motion.div
                   layout
-                  className="flex flex-col  justify-between w-auto"
+                  className="flex flex-col  justify-between w-full"
                 >
                   <div
                     className="flex-shrink-0 overflow-y-scroll p-3"
