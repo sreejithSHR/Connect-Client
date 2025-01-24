@@ -453,7 +453,7 @@ const Room = () => {
     {/* Mobile Header for Close Button */}
     {isMobile && (
       <div className="flex items-center justify-between bg-zinc-900 text-white p-4">
-        <h2 className="text-lg font-medium">Participants</h2>
+        <h2 className="text-lg font-medium">Chat</h2>
         <button
           onClick={() => setshowChat(false)}
           className="text-lg text-gray-300 hover:text-white"
@@ -462,12 +462,14 @@ const Room = () => {
         </button>
       </div>
     )}
+
+    {/* Participants List */}
     <div
       className={`${
         isMobile ? "p-4" : "px-4"
-      } flex-shrink-0 overflow-y-scroll`}
+      } flex-shrink-0 overflow-y-scroll flex-grow`}
       style={{
-        height: isMobile ? "calc(100vh - 64px)" : "calc(100vh - 128px)",
+        height: isMobile ? "calc(100vh - 112px)" : "calc(100vh - 128px)",
       }}
     >
       <div className="flex flex-col bg-zinc-800 bg-opacity-40 backdrop-filter backdrop-blur-lg shadow-xl border border-gray-200 border-opacity-20 rounded-3xl p-4 py-2 border-b-2 border-gray">
@@ -491,7 +493,7 @@ const Room = () => {
           layout
           className={`${
             particpentsOpen ? "block" : "hidden"
-          } flex flex-col w-full mt-2 h-full max-h-[50vh] overflow-y-scroll gap-3 p-2 bg-cyan-950-600`}
+          } flex flex-col w-full mt-2 max-h-[50vh] overflow-y-scroll gap-3 p-2 bg-cyan-950-600`}
         >
           <AnimatePresence>
             <motion.div
@@ -543,8 +545,43 @@ const Room = () => {
         </motion.div>
       </div>
     </div>
+
+    {/* Chat Input Space */}
+    <div className="w-full bg-darkcyan-9501 border-t-2 border-lightGray p-3">
+      <form onSubmit={sendMessage}>
+        <div className="flex items-center gap-2">
+          {/* Input Field */}
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              className="h-10 p-3 w-full text-sm text-darkcyan-9501 outline-none rounded-lg"
+              placeholder="Enter message..."
+            />
+            {msgText && (
+              <button
+                type="button"
+                onClick={() => setMsgText("")}
+                className="absolute top-0 right-0 h-full p-2 text-lg text-darkcyan-9502 cursor-pointer"
+              >
+                <ClearIcon />
+              </button>
+            )}
+          </div>
+          {/* Send Button */}
+          <button
+            type="submit"
+            className="bg-cyan-950 h-10 w-10 rounded-lg flex items-center justify-center"
+          >
+            <SendIcon />
+          </button>
+        </div>
+      </form>
+    </div>
   </motion.div>
 )}
+
 
               </motion.div>
             )
