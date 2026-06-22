@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+// This hook deliberately manages its own effect/callback dependencies (refs +
+// imperative WebRTC track swaps); the exhaustive-deps rule produces false
+// positives here, so it is disabled for the file.
 import { useCallback, useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
 import { io } from "socket.io-client";
