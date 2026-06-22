@@ -65,7 +65,7 @@ const StreamPage = () => {
   const {
     loading,
     localStream,
-    localVideoRef,
+    screenStream,
     peers,
     peerStreams,
     messages,
@@ -147,17 +147,30 @@ const StreamPage = () => {
 
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-3xl bg-black">
           {isHost ? (
-            <VideoTile
-              isLocal
-              muted
-              stream={localStream}
-              externalVideoRef={localVideoRef}
-              user={{ name: user?.displayName, photoURL: user?.photoURL }}
-              micOn={micOn}
-              videoOn={videoOn}
-              rounded="rounded-3xl"
-              objectContain
-            />
+            <>
+              <VideoTile
+                isLocal
+                muted
+                stream={isScreenSharing ? screenStream : localStream}
+                user={{ name: user?.displayName, photoURL: user?.photoURL }}
+                micOn={micOn}
+                videoOn={isScreenSharing ? true : videoOn}
+                rounded="rounded-3xl"
+                objectContain
+              />
+              {isScreenSharing && videoOn && localStream && (
+                <div className="absolute right-4 top-4 h-28 w-44 overflow-hidden rounded-2xl border-2 border-white/30 shadow-float">
+                  <VideoTile
+                    stream={localStream}
+                    isLocal
+                    muted
+                    user={{ name: user?.displayName, photoURL: user?.photoURL }}
+                    micOn={micOn}
+                    videoOn={videoOn}
+                  />
+                </div>
+              )}
+            </>
           ) : meta.mediaMode === MEDIA_MODES.HLS ? (
             <HlsPlayer src={meta.hlsUrl} />
           ) : hostPeer ? (

@@ -43,7 +43,7 @@ const MeetSession = ({ roomID, prefs }) => {
 
   const {
     phase, isHost, joinRequests, admit, deny,
-    loading, localStream, localVideoRef, peers, peerStreams,
+    loading, localStream, screenStream, peers, peerStreams,
     messages, participants, micOn, videoOn, isScreenSharing, chatDisabled,
     devices, selectedDevices, isRecording,
     sendMessage, toggleAudio, toggleVideo, toggleScreenShare,
@@ -62,10 +62,10 @@ const MeetSession = ({ roomID, prefs }) => {
     const local = {
       id: "local",
       isLocal: true,
-      stream: localStream,
+      stream: isScreenSharing ? screenStream : localStream,
       user: { name: user?.displayName, photoURL: user?.photoURL },
       micOn,
-      videoOn,
+      videoOn: isScreenSharing ? true : videoOn,
     };
     const remote = peers.map((p) => ({
       id: p.peerID,
@@ -75,7 +75,7 @@ const MeetSession = ({ roomID, prefs }) => {
       videoOn: p.videoOn !== false,
     }));
     return [local, ...remote];
-  }, [localStream, user, micOn, videoOn, peers, peerStreams]);
+  }, [localStream, screenStream, isScreenSharing, user, micOn, videoOn, peers, peerStreams]);
 
   const active = tiles.find((t) => t.id === activeId) || tiles[0];
   const thumbs = tiles.filter((t) => t.id !== active.id);
@@ -145,14 +145,27 @@ const MeetSession = ({ roomID, prefs }) => {
             user={active.user}
             micOn={active.micOn}
             videoOn={active.videoOn}
-            externalVideoRef={active.isLocal ? localVideoRef : undefined}
             sinkId={selectedDevices.speaker}
             rounded="rounded-3xl"
             active
           />
 
+          {/* Presenter's camera, minimised to the corner while sharing screen */}
+          {active.isLocal && isScreenSharing && videoOn && localStream && (
+            <div className="absolute right-4 top-4 h-28 w-44 overflow-hidden rounded-2xl border-2 border-white/30 shadow-float">
+              <VideoTile
+                stream={localStream}
+                isLocal
+                muted
+                user={{ name: user?.displayName, photoURL: user?.photoURL }}
+                micOn={micOn}
+                videoOn={videoOn}
+              />
+            </div>
+          )}
+
           {isRecording && (
-            <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+            <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
               <span className="h-2 w-2 animate-pulseLive rounded-full bg-live" /> Recording
             </div>
           )}
@@ -187,7 +200,6 @@ const MeetSession = ({ roomID, prefs }) => {
                   user={t.user}
                   micOn={t.micOn}
                   videoOn={t.videoOn}
-                  externalVideoRef={t.isLocal ? localVideoRef : undefined}
                   sinkId={selectedDevices.speaker}
                 />
               </button>
