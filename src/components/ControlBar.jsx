@@ -1,6 +1,7 @@
 import React from "react";
 import { IoMic as MicOnIcon, IoMicOff as MicOffIcon } from "react-icons/io5";
 import { IoVideocam as CamOnIcon, IoVideocamOff as CamOffIcon } from "react-icons/io5";
+import { MdScreenShare, MdStopScreenShare } from "react-icons/md";
 import { MdCallEnd as EndIcon } from "react-icons/md";
 
 export const CtrlCircle = ({ variant = "default", onClick, title, children, size = "h-11 w-11" }) => {
@@ -21,8 +22,8 @@ export const CtrlCircle = ({ variant = "default", onClick, title, children, size
 };
 
 /**
- * Center floating control pill (mic / cam / end + extra slots).
- * Pages wrap it with their own left (timer) and right (code) pills.
+ * Center floating control pill. Pages wrap it with their own left (timer) and
+ * right (code) pills.
  */
 const ControlBar = ({
   showMedia = true,
@@ -30,6 +31,9 @@ const ControlBar = ({
   videoOn = true,
   onToggleMic,
   onToggleVideo,
+  showScreenShare = false,
+  isScreenSharing = false,
+  onToggleScreenShare,
   onEnd,
   extra,
 }) => {
@@ -52,6 +56,15 @@ const ControlBar = ({
             {videoOn ? <CamOnIcon /> : <CamOffIcon />}
           </CtrlCircle>
         </>
+      )}
+      {showScreenShare && (
+        <CtrlCircle
+          variant={isScreenSharing ? "active" : "default"}
+          onClick={onToggleScreenShare}
+          title={isScreenSharing ? "Stop sharing" : "Share screen"}
+        >
+          {isScreenSharing ? <MdStopScreenShare /> : <MdScreenShare />}
+        </CtrlCircle>
       )}
       {extra}
       <CtrlCircle variant="danger" onClick={onEnd} title="Leave">

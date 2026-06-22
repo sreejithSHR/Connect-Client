@@ -4,6 +4,7 @@ import { MdOutlineContentCopy as CopyIcon } from "react-icons/md";
 import { FiClock as ClockIcon } from "react-icons/fi";
 import { IoArrowBack as BackIcon } from "react-icons/io5";
 import { HiOutlineUserAdd as InviteIcon } from "react-icons/hi";
+import { MdCheck as AdmitIcon, MdClose as DenyIcon } from "react-icons/md";
 
 import { MODES, ROLES } from "../config";
 import { useRoomConnection } from "../hooks/useRoomConnection";
@@ -11,41 +12,64 @@ import { useAuth } from "../context/AuthContext";
 
 import Loading from "../components/Loading";
 import LoginGate from "../components/LoginGate";
+import PreJoin from "../components/PreJoin";
 import VideoTile from "../components/VideoTile";
 import ControlBar from "../components/ControlBar";
 import ChatPanel from "../components/ChatPanel";
 import ParticipantsPanel from "../components/ParticipantsPanel";
 import ShareModal from "../components/ShareModal";
-import ScreenShareButton from "../components/ScreenShareButton";
 
-const fmtDuration = (secs) => {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
-};
+const AVATAR_FALLBACK =
+  "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png";
 
-const MeetRoom = () => {
-  const { roomID } = useParams();
+const fmtDuration = (s) =>
+  [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
+
+const CenterCard = ({ children }) => (
+  <div className="flex h-full items-center justify-center bg-bg p-4">
+    <div className="w-full max-w-md rounded-3xl bg-surface p-8 text-center shadow-card">
+      {children}
+    </div>
+  </div>
+);
+
+const MeetSession = ({ roomID, prefs }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const conn = useRoomConnection({
+    roomID,
+    mode: MODES.MEET,
+    role: ROLES.PARTICIPANT,
+    initialAudio: prefs.audio,
+    initialVideo: prefs.video,
+  });
+
   const {
+    phase,
+    isHost,
+    joinRequests,
+    admit,
+    deny,
     loading,
     localStream,
     localVideoRef,
     peers,
-    peersRef,
+    peerStreams,
     messages,
     participants,
     micOn,
     videoOn,
+    isScreenSharing,
     sendMessage,
     toggleAudio,
     toggleVideo,
-  } = useRoomConnection({ roomID, mode: MODES.MEET, role: ROLES.PARTICIPANT });
+    toggleScreenShare,
+  } = conn;
 
-  const [tab, setTab] = useState("participants"); // "participants" | "chat"
+  const [tab, setTab] = useState("participants");
   const [share, setShare] = useState(false);
   const [activeId, setActiveId] = useState("local");
   const [elapsed, setElapsed] = useState(0);
@@ -55,56 +79,75 @@ const MeetRoom = () => {
     return () => clearInterval(id);
   }, []);
 
-  const selfUser = useMemo(
-    () => ({ name: user?.displayName, photoURL: user?.photoURL }),
-    [user]
-  );
-
-  // All renderable video tiles (self + connected peers).
-  const tiles = useMemo(() => {
-    const local = {
-      id: "local",
-      isLocal: true,
-      stream: localStream,
-      user: selfUser,
-      micOn,
-    };
-    const remote = peers.map((p) => ({
-      id: p.peerID,
-      peer: p.peer,
-      user: p.user,
-      micOn: p.micOn !== false,
-    }));
-    return [local, ...remote];
-  }, [localStream, selfUser, micOn, peers]);
-
-  const active = tiles.find((t) => t.id === activeId) || tiles[0];
-  const thumbs = tiles.filter((t) => t.id !== active.id);
-
-  // Merge presence list with live mic/cam state for the panel.
-  const enriched = useMemo(() => {
-    const byId = Object.fromEntries(peers.map((p) => [p.peerID, p]));
-    return participants.map((p) => {
-      if (p.user?.uid === user?.uid) return { ...p, micOn, videoOn };
-      const pe = byId[p.socketId];
-      return { ...p, micOn: pe ? pe.micOn !== false : true, videoOn: true };
-    });
-  }, [participants, peers, user, micOn, videoOn]);
-
   const leave = () => {
     navigate("/");
     window.location.reload();
   };
 
+  const tiles = useMemo(() => {
+    const local = {
+      id: "local",
+      isLocal: true,
+      stream: localStream,
+      user: { name: user?.displayName, photoURL: user?.photoURL },
+      micOn,
+      videoOn,
+    };
+    const remote = peers.map((p) => ({
+      id: p.peerID,
+      stream: peerStreams[p.peerID],
+      user: p.user,
+      micOn: p.micOn !== false,
+      videoOn: p.videoOn !== false,
+    }));
+    return [local, ...remote];
+  }, [localStream, user, micOn, videoOn, peers, peerStreams]);
+
+  const active = tiles.find((t) => t.id === activeId) || tiles[0];
+  const thumbs = tiles.filter((t) => t.id !== active.id);
+
+  const enriched = useMemo(() => {
+    const byId = Object.fromEntries(peers.map((p) => [p.peerID, p]));
+    return participants.map((p) => {
+      if (p.user?.uid === user?.uid) return { ...p, micOn, videoOn };
+      const pe = byId[p.socketId];
+      return { ...p, micOn: pe ? pe.micOn !== false : true, videoOn: pe ? pe.videoOn !== false : true };
+    });
+  }, [participants, peers, user, micOn, videoOn]);
+
   if (loading) return <Loading />;
 
-  const code = roomID?.slice(0, 8);
+  if (phase === "waiting") {
+    return (
+      <CenterCard>
+        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+        <h2 className="text-lg font-semibold text-ink">Waiting for the host to let you in…</h2>
+        <p className="mt-1 text-sm text-muted">You'll join automatically once admitted.</p>
+        <button onClick={leave} className="mt-6 text-sm font-medium text-muted hover:text-ink">
+          Cancel
+        </button>
+      </CenterCard>
+    );
+  }
+
+  if (phase === "denied") {
+    return (
+      <CenterCard>
+        <div className="mb-3 text-4xl">🚫</div>
+        <h2 className="text-lg font-semibold text-ink">The host declined your request</h2>
+        <button
+          onClick={() => navigate("/")}
+          className="mt-6 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brandHover"
+        >
+          Back to home
+        </button>
+      </CenterCard>
+    );
+  }
 
   return (
     <div className="flex h-full gap-3 p-3">
-      {/* Stage */}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {/* Header row */}
         <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card">
           <button
             onClick={leave}
@@ -113,57 +156,50 @@ const MeetRoom = () => {
             <BackIcon />
           </button>
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold text-ink">Meeting</h1>
+            <h1 className="truncate text-base font-semibold text-ink">
+              Meeting {isHost && <span className="text-xs font-normal text-brand">· You're host</span>}
+            </h1>
             <p className="text-xs text-muted">
               {new Date().toLocaleString(undefined, {
                 hour: "2-digit",
                 minute: "2-digit",
                 day: "numeric",
                 month: "short",
-                year: "numeric",
               })}
             </p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-live/10 px-3 py-1.5 text-xs font-semibold text-live">
-              <span className="h-2 w-2 animate-pulseLive rounded-full bg-live" />
-              Live
-            </span>
-          </div>
+          <span className="ml-auto flex items-center gap-1.5 rounded-full bg-live/10 px-3 py-1.5 text-xs font-semibold text-live">
+            <span className="h-2 w-2 animate-pulseLive rounded-full bg-live" /> Live
+          </span>
         </div>
 
-        {/* Thumbnail strip */}
         {thumbs.length > 0 && (
           <div className="flex gap-3 overflow-x-auto no-scrollbar">
             {thumbs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveId(t.id)}
-                className="aspect-video w-44 shrink-0"
-              >
+              <button key={t.id} onClick={() => setActiveId(t.id)} className="aspect-video w-44 shrink-0">
                 <VideoTile
-                  peer={t.peer}
                   stream={t.stream}
                   isLocal={t.isLocal}
                   muted={t.isLocal}
                   user={t.user}
                   micOn={t.micOn}
+                  videoOn={t.videoOn}
+                  externalVideoRef={t.isLocal ? localVideoRef : undefined}
                 />
               </button>
             ))}
           </div>
         )}
 
-        {/* Active speaker + floating controls */}
         <div className="relative min-h-0 flex-1">
           <VideoTile
             key={active.id}
-            peer={active.peer}
             stream={active.stream}
             isLocal={active.isLocal}
             muted={active.isLocal}
             user={active.user}
             micOn={active.micOn}
+            videoOn={active.videoOn}
             externalVideoRef={active.isLocal ? localVideoRef : undefined}
             rounded="rounded-3xl"
             active
@@ -173,69 +209,96 @@ const MeetRoom = () => {
             <span className="hidden items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-sm font-medium text-ink2 shadow-float sm:flex">
               <ClockIcon className="text-muted" /> {fmtDuration(elapsed)}
             </span>
-
             <ControlBar
               micOn={micOn}
               videoOn={videoOn}
               onToggleMic={toggleAudio}
               onToggleVideo={toggleVideo}
+              showScreenShare
+              isScreenSharing={isScreenSharing}
+              onToggleScreenShare={toggleScreenShare}
               onEnd={leave}
-              extra={
-                <ScreenShareButton
-                  peersRef={peersRef}
-                  localVideo={localVideoRef}
-                  onScreenShareEnd={() => {}}
-                />
-              }
             />
-
             <button
               onClick={() => setShare(true)}
               className="hidden items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-sm font-medium text-ink2 shadow-float hover:text-ink sm:flex"
             >
-              <CopyIcon className="text-muted" /> {code}
+              <CopyIcon className="text-muted" /> {roomID?.slice(0, 8)}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Right panel */}
-      <aside className="hidden w-80 shrink-0 flex-col rounded-2xl bg-surface p-4 shadow-card lg:flex">
-        <div className="mb-4 flex rounded-full bg-surface2 p-1">
-          <button
-            onClick={() => setTab("participants")}
-            className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
-              tab === "participants" ? "bg-ink text-white" : "text-muted hover:text-ink"
-            }`}
-          >
-            Participants ({participants.length})
-          </button>
-          <button
-            onClick={() => setTab("chat")}
-            className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
-              tab === "chat" ? "bg-ink text-white" : "text-muted hover:text-ink"
-            }`}
-          >
-            Chat
-          </button>
-        </div>
+      <aside className="hidden w-80 shrink-0 flex-col gap-3 lg:flex">
+        {isHost && joinRequests.length > 0 && (
+          <div className="rounded-2xl bg-surface p-4 shadow-card">
+            <h3 className="mb-3 text-sm font-semibold text-ink">
+              Request to join ({joinRequests.length})
+            </h3>
+            <div className="space-y-2">
+              {joinRequests.map((r) => (
+                <div key={r.socketId} className="flex items-center gap-2">
+                  <img
+                    src={r.user?.photoURL || AVATAR_FALLBACK}
+                    alt={r.user?.name}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-sm text-ink">{r.user?.name}</span>
+                  <button
+                    onClick={() => deny(r.socketId)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-live/10 text-live hover:bg-live/20"
+                  >
+                    <DenyIcon />
+                  </button>
+                  <button
+                    onClick={() => admit(r.socketId)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-success/15 text-success hover:bg-success/25"
+                  >
+                    <AdmitIcon />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <div className="min-h-0 flex-1">
-          {tab === "participants" ? (
-            <ParticipantsPanel participants={enriched} meId={user?.uid} />
-          ) : (
-            <ChatPanel messages={messages} onSend={sendMessage} />
+        <div className="flex min-h-0 flex-1 flex-col rounded-2xl bg-surface p-4 shadow-card">
+          <div className="mb-4 flex rounded-full bg-surface2 p-1">
+            <button
+              onClick={() => setTab("participants")}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
+                tab === "participants" ? "bg-ink text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Participants ({participants.length})
+            </button>
+            <button
+              onClick={() => setTab("chat")}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
+                tab === "chat" ? "bg-ink text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Chat
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1">
+            {tab === "participants" ? (
+              <ParticipantsPanel participants={enriched} meId={user?.uid} />
+            ) : (
+              <ChatPanel messages={messages} onSend={sendMessage} />
+            )}
+          </div>
+
+          {tab === "participants" && (
+            <button
+              onClick={() => setShare(true)}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-brand py-3 text-sm font-semibold text-white transition-colors hover:bg-brandHover"
+            >
+              <InviteIcon size={18} /> Invite people
+            </button>
           )}
         </div>
-
-        {tab === "participants" && (
-          <button
-            onClick={() => setShare(true)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-brand py-3 text-sm font-semibold text-white transition-colors hover:bg-brandHover"
-          >
-            <InviteIcon size={18} /> Invite people
-          </button>
-        )}
       </aside>
 
       <ShareModal
@@ -246,6 +309,13 @@ const MeetRoom = () => {
       />
     </div>
   );
+};
+
+const MeetRoom = () => {
+  const { roomID } = useParams();
+  const [prefs, setPrefs] = useState(null);
+  if (!prefs) return <PreJoin onJoin={setPrefs} heading="Ready to join the meeting?" />;
+  return <MeetSession roomID={roomID} prefs={prefs} />;
 };
 
 const Room = () => (

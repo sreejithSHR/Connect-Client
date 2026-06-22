@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { IoMicOff as MicOffIcon } from "react-icons/io5";
 import { HiOutlineUser as UserIcon } from "react-icons/hi";
 import { BsPin as PinIcon, BsPinFill as PinActiveIcon } from "react-icons/bs";
@@ -7,11 +7,11 @@ const AVATAR_FALLBACK =
   "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png";
 
 /**
- * One video cell. Accepts either a local MediaStream (`stream` + `isLocal`) or a
- * simple-peer `peer` whose remote stream it attaches on the "stream" event.
+ * One video cell. Renders from a `stream` prop (captured in the hook for remote
+ * peers, or the local MediaStream) so it survives re-mounts (e.g. pin/swap)
+ * without losing video. `videoOn={false}` shows the avatar placeholder.
  */
 const VideoTile = ({
-  peer,
   stream,
   user,
   isLocal = false,
@@ -26,35 +26,18 @@ const VideoTile = ({
   externalVideoRef,
 }) => {
   const videoRef = useRef(null);
-  const [hasVideo, setHasVideo] = useState(videoOn);
 
   const setVideoNode = (node) => {
     videoRef.current = node;
     if (externalVideoRef) externalVideoRef.current = node;
+    if (node && stream) node.srcObject = stream;
   };
 
   useEffect(() => {
-    if (stream && videoRef.current) {
-      videoRef.current.srcObject = stream;
-      const track = stream.getVideoTracks()[0];
-      setHasVideo(track ? track.enabled : false);
-    }
+    if (videoRef.current && stream) videoRef.current.srcObject = stream;
   }, [stream]);
 
-  useEffect(() => {
-    if (!peer) return undefined;
-    const onStream = (remote) => {
-      if (videoRef.current) videoRef.current.srcObject = remote;
-      const track = remote.getVideoTracks()[0];
-      setHasVideo(track ? track.enabled : true);
-    };
-    peer.on("stream", onStream);
-    return () => peer.off?.("stream", onStream);
-  }, [peer]);
-
-  useEffect(() => {
-    if (isLocal) setHasVideo(videoOn);
-  }, [videoOn, isLocal]);
+  const showVideo = !!stream && videoOn !== false;
 
   return (
     <div
@@ -68,11 +51,11 @@ const VideoTile = ({
         playsInline
         muted={muted}
         className={`h-full w-full ${objectContain ? "object-contain" : "object-cover"} ${
-          hasVideo ? "" : "opacity-0"
+          showVideo ? "" : "opacity-0"
         }`}
       />
 
-      {!hasVideo && (
+      {!showVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-surface2">
           <img
             src={user?.photoURL || user?.profilePic || AVATAR_FALLBACK}

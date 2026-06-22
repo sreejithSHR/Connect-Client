@@ -14,7 +14,6 @@ import VideoTile from "../components/VideoTile";
 import ChatPanel from "../components/ChatPanel";
 import ControlBar from "../components/ControlBar";
 import ShareModal from "../components/ShareModal";
-import ScreenShareButton from "../components/ScreenShareButton";
 import HlsPlayer from "../components/HlsPlayer";
 
 const AVATAR_FALLBACK =
@@ -66,15 +65,17 @@ const StreamPage = () => {
     localStream,
     localVideoRef,
     peers,
-    peersRef,
+    peerStreams,
     messages,
     viewerCount,
     micOn,
     videoOn,
+    isScreenSharing,
     streamEnded,
     sendMessage,
     toggleAudio,
     toggleVideo,
+    toggleScreenShare,
   } = useRoomConnection({ roomID, mode: MODES.STREAM, role });
 
   const hostPeer = useMemo(
@@ -111,7 +112,6 @@ const StreamPage = () => {
   return (
     <div className="flex h-full gap-3 p-3">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {/* Header */}
         <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card">
           <button
             onClick={endStream}
@@ -128,8 +128,7 @@ const StreamPage = () => {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-live px-3 py-1.5 text-xs font-bold uppercase text-white">
-              <span className="h-2 w-2 animate-pulseLive rounded-full bg-white" />
-              Live
+              <span className="h-2 w-2 animate-pulseLive rounded-full bg-white" /> Live
             </span>
             <span className="flex items-center gap-1.5 rounded-full bg-surface2 px-3 py-1.5 text-xs font-semibold text-ink2">
               <ViewersIcon size={13} /> {viewerCount}
@@ -137,7 +136,6 @@ const StreamPage = () => {
           </div>
         </div>
 
-        {/* Player */}
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-3xl bg-black">
           {isHost ? (
             <VideoTile
@@ -154,7 +152,12 @@ const StreamPage = () => {
           ) : meta.mediaMode === MEDIA_MODES.HLS ? (
             <HlsPlayer src={meta.hlsUrl} />
           ) : hostPeer ? (
-            <VideoTile peer={hostPeer.peer} user={hostPeer.user} rounded="rounded-3xl" objectContain />
+            <VideoTile
+              stream={peerStreams[hostPeer.peerID]}
+              user={hostPeer.user}
+              rounded="rounded-3xl"
+              objectContain
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-white/70">
               Connecting to stream…
@@ -168,22 +171,15 @@ const StreamPage = () => {
               videoOn={videoOn}
               onToggleMic={toggleAudio}
               onToggleVideo={toggleVideo}
+              showScreenShare={isHost}
+              isScreenSharing={isScreenSharing}
+              onToggleScreenShare={toggleScreenShare}
               onEnd={endStream}
-              extra={
-                isHost && (
-                  <ScreenShareButton
-                    peersRef={peersRef}
-                    localVideo={localVideoRef}
-                    onScreenShareEnd={() => {}}
-                  />
-                )
-              }
             />
           </div>
         </div>
       </div>
 
-      {/* Live chat */}
       <aside className="hidden w-80 shrink-0 flex-col rounded-2xl bg-surface p-4 shadow-card lg:flex">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink">Stream Chat</h3>
