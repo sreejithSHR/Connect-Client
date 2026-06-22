@@ -1,9 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoArrowBack as BackIcon } from "react-icons/io5";
 import { HiOutlineUserAdd as InviteIcon } from "react-icons/hi";
 import { MdCheck as AdmitIcon, MdClose as DenyIcon } from "react-icons/md";
+import { MdFullscreen, MdFullscreenExit } from "react-icons/md";
+import { AiOutlineShareAlt as ShareIcon } from "react-icons/ai";
 import { FiLogOut as LeaveIcon } from "react-icons/fi";
+import { TbLayoutSidebarRightCollapse, TbLayoutSidebarRightExpand } from "react-icons/tb";
 
 import { MODES, ROLES } from "../config";
 import { useRoomConnection } from "../hooks/useRoomConnection";
@@ -55,6 +58,20 @@ const MeetSession = ({ roomID, prefs }) => {
   const [share, setShare] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeId, setActiveId] = useState("local");
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) containerRef.current?.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  };
 
   const leave = () => { navigate("/"); window.location.reload(); };
 
@@ -113,12 +130,14 @@ const MeetSession = ({ roomID, prefs }) => {
     );
   }
 
+  const iconBtn = "flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface2 hover:text-ink";
+
   return (
-    <div className="flex h-full gap-3 p-3">
+    <div ref={containerRef} className="flex h-full gap-3 bg-bg p-3">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Header */}
         <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card">
-          <button onClick={leave} className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface2 hover:text-ink">
+          <button onClick={leave} className={iconBtn}>
             <BackIcon />
           </button>
           <div className="min-w-0">
@@ -127,12 +146,27 @@ const MeetSession = ({ roomID, prefs }) => {
             </h1>
             <p className="text-xs text-muted">{participants.length} Participant{participants.length === 1 ? "" : "s"}</p>
           </div>
-          <button
-            onClick={leave}
-            className="ml-auto flex items-center gap-2 rounded-full bg-live/10 px-4 py-2 text-sm font-semibold text-live transition-colors hover:bg-live/20"
-          >
-            <LeaveIcon size={16} /> Leave Meeting
-          </button>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button onClick={() => setShare(true)} title="Share meeting" className={iconBtn}>
+              <ShareIcon size={18} />
+            </button>
+            <button onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} className={iconBtn}>
+              {isFullscreen ? <MdFullscreenExit size={20} /> : <MdFullscreen size={20} />}
+            </button>
+            <button
+              onClick={() => setPanelOpen((o) => !o)}
+              title={panelOpen ? "Hide participants & chat" : "Show participants & chat"}
+              className={`${iconBtn} hidden lg:flex`}
+            >
+              {panelOpen ? <TbLayoutSidebarRightCollapse size={20} /> : <TbLayoutSidebarRightExpand size={20} />}
+            </button>
+            <button
+              onClick={leave}
+              className="flex items-center gap-2 rounded-full bg-live/10 px-4 py-2 text-sm font-semibold text-live transition-colors hover:bg-live/20"
+            >
+              <LeaveIcon size={16} /> Leave Meeting
+            </button>
+          </div>
         </div>
 
         {/* Speaker */}
@@ -214,7 +248,7 @@ const MeetSession = ({ roomID, prefs }) => {
       </div>
 
       {/* Right column */}
-      <aside className="hidden w-80 shrink-0 flex-col gap-3 lg:flex">
+      <aside className={`${panelOpen ? "hidden lg:flex" : "hidden"} w-80 shrink-0 flex-col gap-3`}>
         {isHost && joinRequests.length > 0 && (
           <div className="rounded-2xl bg-surface p-4 shadow-card">
             <h3 className="mb-3 text-sm font-semibold text-ink">Request to join ({joinRequests.length})</h3>
