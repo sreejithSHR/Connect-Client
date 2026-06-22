@@ -2,10 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, firestore } from "../firebase/config";
 import {
-  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
 } from "firebase/auth";

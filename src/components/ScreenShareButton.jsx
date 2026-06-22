@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { MdStopScreenShare } from "react-icons/md";
-import { AiOutlineShareAlt as ShareIcon } from "react-icons/ai";
 import { MdScreenShare as ScreenShareIcon } from "react-icons/md";
 
 const ScreenShareButton = ({ peersRef, localVideo, onScreenShareEnd }) => {
@@ -83,19 +82,13 @@ const ScreenShareButton = ({ peersRef, localVideo, onScreenShareEnd }) => {
 
   return (
     <button
-      className={`${
-        screenSharing
-          ? "bg-cyan-950 border-transparent"
-          : "bg-slate-800/70 backdrop-blur border-gray"
-      } border-2 p-2 cursor-pointer rounded-xl text-white text-xl`}
+      title={screenSharing ? "Stop sharing" : "Share screen"}
+      className={`flex h-11 w-11 items-center justify-center rounded-full text-xl transition-colors ${
+        screenSharing ? "bg-brand text-white hover:bg-brandHover" : "bg-surface2 text-ink2 hover:bg-surface3"
+      }`}
       onClick={screenShareToggle}
     >
-      {screenSharing ? (
-        <MdStopScreenShare size={22} />
-      ) : (
-        <ScreenShareIcon size={22} />
-        
-      )}
+      {screenSharing ? <MdStopScreenShare size={20} /> : <ScreenShareIcon size={20} />}
     </button>
   );
 };

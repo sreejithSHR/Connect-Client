@@ -1,6 +1,5 @@
-// icons
 import { MdHomeFilled as HomeIcon } from "react-icons/md";
-import { IoChatboxEllipsesOutline as ChatIcon } from "react-icons/io5";
+import { MdLiveTv as BrowseIcon } from "react-icons/md";
 
 export const sideMenuData = [
   {
@@ -8,13 +7,9 @@ export const sideMenuData = [
     icon: <HomeIcon />,
     route: "/",
   },
-  // {
-  //   text: "Chat",
-  //   icon: <ChatIcon />,
-  //   route: "/chat",
-  // },
-  // {
-  //   text: "",
-  //   icon: < />,
-  // },
+  {
+    text: "Browse",
+    icon: <BrowseIcon />,
+    route: "/browse",
+  },
 ];

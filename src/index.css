@@ -2,15 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@100;300;500&display=swap");
-
-body {
-  font-family: "Poppings", sans-serif;
-}
-
-::-webkit-scrollbar {
-  display: none;
-}
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap");
 
 * {
   margin: 0;
@@ -18,27 +10,39 @@ body {
   box-sizing: border-box;
 }
 
-/* 
-@layer components {
-  .sidebar-icon {
-    @apply relative flex items-center justify-center 
-    h-12 w-12 mt-2 mb-2 mx-auto  
-  bg-gray-400 hover:bg-green-600 dark:bg-gray-800 
-  text-green-500 hover:text-white
-    hover:rounded-xl rounded-3xl
-    transition-all duration-300 ease-linear
-    cursor-pointer shadow-lg ;
-  }
+html,
+body,
+#root {
+  height: 100%;
+}
 
-  .sidebar-tooltip {
-    @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
-    text-white bg-gray-900 
-    text-xs font-bold 
-    transition-all duration-100 scale-0 origin-left;
-  }
+body {
+  font-family: "Inter", "Poppins", system-ui, sans-serif;
+  background-color: #e9ebf1;
+  color: #1a1d24;
+  -webkit-font-smoothing: antialiased;
+}
 
-  .sidebar-hr {
-    @apply bg-gray-200 dark:bg-gray-800 
-    border border-gray-200 dark:border-gray-800 rounded-full
-    mx-2;
-  } */
+/* Slim, light scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d7e0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bcc0cc;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
