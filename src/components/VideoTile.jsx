@@ -7,9 +7,13 @@ const AVATAR_FALLBACK =
   "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png";
 
 /**
- * One video cell. Renders from a `stream` prop (captured in the hook for remote
- * peers, or the local MediaStream) so it survives re-mounts (e.g. pin/swap)
- * without losing video. `videoOn={false}` shows the avatar placeholder.
+ * One video cell. Renders from a `stream` prop so it survives re-mounts
+ * (pin/swap) without losing video.
+ *
+ * IMPORTANT: uses a stable ref + a guarded srcObject assignment. A callback ref
+ * (or unconditional assignment) re-attaches the stream on every parent render —
+ * with the per-second meeting timer that caused the video to reload/flicker
+ * once a second. We only touch srcObject when it actually changes.
  */
 const VideoTile = ({
   stream,
@@ -24,18 +28,22 @@ const VideoTile = ({
   active = false,
   rounded = "rounded-2xl",
   externalVideoRef,
+  sinkId,
 }) => {
   const videoRef = useRef(null);
 
-  const setVideoNode = (node) => {
-    videoRef.current = node;
-    if (externalVideoRef) externalVideoRef.current = node;
-    if (node && stream) node.srcObject = stream;
-  };
+  useEffect(() => {
+    const el = videoRef.current;
+    if (externalVideoRef) externalVideoRef.current = el;
+    if (el && stream && el.srcObject !== stream) el.srcObject = stream;
+  }, [stream, externalVideoRef]);
 
   useEffect(() => {
-    if (videoRef.current && stream) videoRef.current.srcObject = stream;
-  }, [stream]);
+    const el = videoRef.current;
+    if (el && sinkId && typeof el.setSinkId === "function") {
+      el.setSinkId(sinkId).catch(() => {});
+    }
+  }, [sinkId]);
 
   const showVideo = !!stream && videoOn !== false;
 
@@ -46,7 +54,7 @@ const VideoTile = ({
       }`}
     >
       <video
-        ref={setVideoNode}
+        ref={videoRef}
         autoPlay
         playsInline
         muted={muted}

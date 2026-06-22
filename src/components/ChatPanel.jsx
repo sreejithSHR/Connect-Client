@@ -8,7 +8,14 @@ const AVATAR_FALLBACK =
  * Live chat. `compact` (Twitch-style) renders inline "name: text"; otherwise
  * avatar + bubbles (meeting style).
  */
-const ChatPanel = ({ messages = [], onSend, placeholder = "Type a message…", compact = false }) => {
+const ChatPanel = ({
+  messages = [],
+  onSend,
+  placeholder = "Type a message…",
+  compact = false,
+  disabled = false,
+  disabledNote = "Chat has been disabled by the host",
+}) => {
   const [text, setText] = useState("");
   const scrollRef = useRef(null);
 
@@ -67,22 +74,28 @@ const ChatPanel = ({ messages = [], onSend, placeholder = "Type a message…", c
             ))}
       </div>
 
-      <form onSubmit={submit} className="pt-2">
-        <div className="flex items-center gap-2 rounded-full border border-line bg-surface2 px-2 py-1.5">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-muted"
-          />
-          <button
-            type="submit"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brandHover"
-          >
-            <SendIcon size={16} />
-          </button>
+      {disabled ? (
+        <div className="mt-2 rounded-full bg-surface2 px-4 py-2.5 text-center text-xs font-medium text-muted">
+          {disabledNote}
         </div>
-      </form>
+      ) : (
+        <form onSubmit={submit} className="pt-2">
+          <div className="flex items-center gap-2 rounded-full border border-line bg-surface2 px-2 py-1.5">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-muted"
+            />
+            <button
+              type="submit"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brandHover"
+            >
+              <SendIcon size={16} />
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

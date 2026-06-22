@@ -14,6 +14,7 @@ import VideoTile from "../components/VideoTile";
 import ChatPanel from "../components/ChatPanel";
 import ControlBar from "../components/ControlBar";
 import ShareModal from "../components/ShareModal";
+import SettingsModal from "../components/SettingsModal";
 import HlsPlayer from "../components/HlsPlayer";
 
 const AVATAR_FALLBACK =
@@ -36,6 +37,7 @@ const StreamPage = () => {
   });
   const [metaReady, setMetaReady] = useState(isHost);
   const [share, setShare] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!isHost || !user) return;
@@ -71,11 +73,18 @@ const StreamPage = () => {
     micOn,
     videoOn,
     isScreenSharing,
+    isRecording,
+    devices,
+    selectedDevices,
     streamEnded,
     sendMessage,
     toggleAudio,
     toggleVideo,
     toggleScreenShare,
+    toggleRecording,
+    setCamera,
+    setMicrophone,
+    setSpeaker,
   } = useRoomConnection({ roomID, mode: MODES.STREAM, role });
 
   const hostPeer = useMemo(
@@ -155,6 +164,7 @@ const StreamPage = () => {
             <VideoTile
               stream={peerStreams[hostPeer.peerID]}
               user={hostPeer.user}
+              sinkId={selectedDevices.speaker}
               rounded="rounded-3xl"
               objectContain
             />
@@ -174,6 +184,10 @@ const StreamPage = () => {
               showScreenShare={isHost}
               isScreenSharing={isScreenSharing}
               onToggleScreenShare={toggleScreenShare}
+              showRecord={isHost}
+              isRecording={isRecording}
+              onToggleRecord={toggleRecording}
+              onSettings={isHost ? () => setSettingsOpen(true) : undefined}
               onEnd={endStream}
             />
           </div>
@@ -200,6 +214,15 @@ const StreamPage = () => {
         onClose={() => setShare(false)}
         url={window.location.href}
         label="Share your stream"
+      />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        devices={devices}
+        selected={selectedDevices}
+        onCamera={setCamera}
+        onMic={setMicrophone}
+        onSpeaker={setSpeaker}
       />
     </div>
   );

@@ -12,13 +12,10 @@ import leaveSFX from "../sounds/leave.mp3";
 import msgSFX from "../sounds/message.mp3";
 
 /**
- * Socket + WebRTC lifecycle shared by Meet and Stream.
- *
- * Track handling uses simple-peer's `replaceTrack` (no renegotiation): every
- * connection is created with a video sender, and camera-off / screen-share swap
- * that sender's track. Camera-off actually stops the device (privacy), then a
- * fresh track is acquired on camera-on. Remote streams are captured into state
- * so a tile can be re-mounted (e.g. pinned) without losing its video.
+ * Socket + WebRTC lifecycle shared by Meet and Stream. Video/audio device swaps
+ * (camera, mic, screen-share) use simple-peer's `replaceTrack` so there is no
+ * renegotiation. Camera-off stops the device (privacy). Remote streams are kept
+ * in state so tiles survive re-mounts.
  */
 export function useRoomConnection({
   roomID,
@@ -32,7 +29,7 @@ export function useRoomConnection({
   const captureMedia = role === ROLES.PARTICIPANT || role === ROLES.HOST;
   const sendsStream = mode === MODES.MEET || role === ROLES.HOST;
 
-  const [phase, setPhase] = useState("connecting"); // connecting | waiting | live | denied
+  const [phase, setPhase] = useState("connecting");
   const [isHost, setIsHost] = useState(false);
   const [joinRequests, setJoinRequests] = useState([]);
 
@@ -47,12 +44,19 @@ export function useRoomConnection({
   const [micOn, setMicOn] = useState(initialAudio);
   const [videoOn, setVideoOn] = useState(initialVideo);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [chatDisabled, setChatDisabledState] = useState(false);
+
+  const [devices, setDevices] = useState({ cameras: [], mics: [], speakers: [] });
+  const [selectedDevices, setSelectedDevices] = useState({ camera: "", mic: "", speaker: "" });
+  const [isRecording, setIsRecording] = useState(false);
 
   const socketRef = useRef(null);
   const peersRef = useRef([]);
   const streamRef = useRef(null);
   const localVideoRef = useRef(null);
-  const cameraTrackRef = useRef(null); // current video sender key (kept in streamRef)
+  const cameraTrackRef = useRef(null); // current video sender key
+  const audioTrackRef = useRef(null); // current audio sender key
+  const recorderRef = useRef(null);
 
   const refreshLocalPreview = () => {
     const el = localVideoRef.current;
@@ -62,12 +66,12 @@ export function useRoomConnection({
     }
   };
 
-  const replaceVideoForPeers = (oldKey, newTrack) => {
+  const replaceForPeers = (oldKey, newTrack) => {
     peersRef.current.forEach(({ peer }) => {
       try {
         peer.replaceTrack(oldKey, newTrack, streamRef.current);
       } catch (e) {
-        /* peer may have no video sender (receive-only viewer) */
+        /* receive-only peer / no such sender */
       }
     });
   };
@@ -75,23 +79,56 @@ export function useRoomConnection({
   const emitMedia = (kind, enabled) =>
     socketRef.current?.emit("media state", { roomID, kind, enabled });
 
-  // ---- Peer factory (stream capture wired in) ----
+  // Swap the live video track (camera switch / screen start-stop / turn on).
+  const applyVideoTrack = (newTrack) => {
+    const stream = streamRef.current;
+    if (!stream) return;
+    replaceForPeers(cameraTrackRef.current, newTrack);
+    const old = cameraTrackRef.current;
+    if (old) {
+      try { stream.removeTrack(old); } catch (e) { /* ignore */ }
+      old.stop();
+    }
+    stream.addTrack(newTrack);
+    cameraTrackRef.current = newTrack;
+    refreshLocalPreview();
+  };
+
+  const turnCameraOff = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream || !cameraTrackRef.current) return;
+    replaceForPeers(cameraTrackRef.current, null);
+    cameraTrackRef.current.stop(); // keep as sender key for restore
+    setVideoOn(false);
+    refreshLocalPreview();
+    emitMedia("video", false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomID]);
+
+  const muteSelf = useCallback(() => {
+    const t = streamRef.current?.getAudioTracks()[0];
+    if (t && t.enabled) {
+      t.enabled = false;
+      setMicOn(false);
+      emitMedia("audio", false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomID]);
+
+  // ---- Peers ----
   const trackPeerStream = useCallback((peerID, peer) => {
-    peer.on("stream", (remote) => {
-      setPeerStreams((prev) => ({ ...prev, [peerID]: remote }));
-    });
+    peer.on("stream", (remote) =>
+      setPeerStreams((prev) => ({ ...prev, [peerID]: remote }))
+    );
   }, []);
 
-  const createPeer = useCallback(
-    (userToSignal, callerID, stream) => {
-      const peer = new Peer({ initiator: true, trickle: false, stream: stream || undefined });
-      peer.on("signal", (signal) =>
-        socketRef.current?.emit("sending signal", { userToSignal, callerID, signal })
-      );
-      return peer;
-    },
-    []
-  );
+  const createPeer = useCallback((userToSignal, callerID, stream) => {
+    const peer = new Peer({ initiator: true, trickle: false, stream: stream || undefined });
+    peer.on("signal", (signal) =>
+      socketRef.current?.emit("sending signal", { userToSignal, callerID, signal })
+    );
+    return peer;
+  }, []);
 
   const addPeer = useCallback((incomingSignal, callerID, stream) => {
     const peer = new Peer({ initiator: false, trickle: false, stream: stream || undefined });
@@ -100,6 +137,19 @@ export function useRoomConnection({
     );
     peer.signal(incomingSignal);
     return peer;
+  }, []);
+
+  const loadDevices = useCallback(async () => {
+    try {
+      const list = await navigator.mediaDevices.enumerateDevices();
+      setDevices({
+        cameras: list.filter((d) => d.kind === "videoinput"),
+        mics: list.filter((d) => d.kind === "audioinput"),
+        speakers: list.filter((d) => d.kind === "audiooutput"),
+      });
+    } catch (e) {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -131,12 +181,10 @@ export function useRoomConnection({
         if (data.user.id !== user.uid) new Audio(msgSFX).play().catch(() => {});
         setMessages((prev) => [...prev, { ...data, send: data.user.id === user.uid }]);
       });
-
       socket.on("room state", (state) => {
         setParticipants(state.participants || []);
         setViewerCount(state.viewerCount || 1);
       });
-
       socket.on("media state", ({ socketId, kind, enabled }) => {
         setPeers((prev) =>
           prev.map((p) =>
@@ -147,27 +195,29 @@ export function useRoomConnection({
         );
       });
 
-      // ---- Lobby ----
+      // Lobby
       socket.on("waiting", () => setPhase("waiting"));
-      socket.on("admitted", ({ host }) => {
-        setIsHost(!!host);
-        setPhase("live");
-      });
+      socket.on("admitted", ({ host }) => { setIsHost(!!host); setPhase("live"); });
       socket.on("denied", () => setPhase("denied"));
       socket.on("host changed", () => setIsHost(true));
-      socket.on("join request", ({ socketId, user: u }) => {
+      socket.on("join request", ({ socketId, user: u }) =>
         setJoinRequests((prev) =>
           prev.some((r) => r.socketId === socketId) ? prev : [...prev, { socketId, user: u }]
-        );
-      });
+        )
+      );
       socket.on("request handled", ({ socketId }) =>
         setJoinRequests((prev) => prev.filter((r) => r.socketId !== socketId))
       );
 
+      // Host moderation (received by the targeted participant / whole room)
+      socket.on("force mute", () => muteSelf());
+      socket.on("force camera off", () => turnCameraOff());
+      socket.on("chat disabled", ({ disabled }) => setChatDisabledState(!!disabled));
+
       socket.on("stream ended", () => setPhase("ended"));
       socket.on("error", (e) => setError(e?.message || "Connection error"));
 
-      // ---- Local media ----
+      // Local media
       let stream = null;
       if (captureMedia) {
         try {
@@ -186,12 +236,12 @@ export function useRoomConnection({
         const audioTrack = stream.getAudioTracks()[0];
         const videoTrack = stream.getVideoTracks()[0];
         if (audioTrack) audioTrack.enabled = initialAudio;
+        audioTrackRef.current = audioTrack || null;
         cameraTrackRef.current = videoTrack || null;
-        // Honour an initial camera-off choice by stopping the device now, while
-        // keeping the (ended) track in the stream so peers still get a sender.
         if (videoTrack && !initialVideo) videoTrack.stop();
         setLocalStream(stream);
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        loadDevices();
       }
       setLoading(false);
 
@@ -252,6 +302,7 @@ export function useRoomConnection({
 
     return () => {
       cancelled = true;
+      try { recorderRef.current?.stop(); } catch (e) { /* ignore */ }
       peersRef.current.forEach((p) => p.peer.destroy());
       peersRef.current = [];
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -279,88 +330,157 @@ export function useRoomConnection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomID]);
 
-  // Real camera off: stop the device (light off) + stop sending; re-acquire on.
-  const toggleVideo = useCallback(async () => {
-    if (!captureMedia || isScreenSharing) return;
-    const stream = streamRef.current;
-    if (!stream) return;
-
-    if (videoOn) {
-      replaceVideoForPeers(cameraTrackRef.current, null);
-      cameraTrackRef.current?.stop(); // keep the (ended) track as the sender key
-      setVideoOn(false);
-      refreshLocalPreview();
-      emitMedia("video", false);
-    } else {
+  const turnCameraOn = useCallback(
+    async (deviceId) => {
       try {
-        const cam = await navigator.mediaDevices.getUserMedia({ video: true });
-        const newTrack = cam.getVideoTracks()[0];
-        replaceVideoForPeers(cameraTrackRef.current, newTrack);
-        const old = cameraTrackRef.current;
-        if (old) {
-          try { stream.removeTrack(old); } catch (e) { /* ignore */ }
-        }
-        stream.addTrack(newTrack);
-        cameraTrackRef.current = newTrack;
+        const cam = await navigator.mediaDevices.getUserMedia({
+          video: deviceId ? { deviceId: { exact: deviceId } } : true,
+        });
+        applyVideoTrack(cam.getVideoTracks()[0]);
         setVideoOn(true);
-        refreshLocalPreview();
         emitMedia("video", true);
       } catch (e) {
         setError("Camera unavailable");
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captureMedia, isScreenSharing, videoOn, roomID]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [roomID]
+  );
+
+  const toggleVideo = useCallback(() => {
+    if (!captureMedia || isScreenSharing) return;
+    if (videoOn) turnCameraOff();
+    else turnCameraOn(selectedDevices.camera);
+  }, [captureMedia, isScreenSharing, videoOn, turnCameraOff, turnCameraOn, selectedDevices.camera]);
 
   const stopScreenShare = useCallback(async () => {
-    const stream = streamRef.current;
-    if (!stream) return;
+    if (!streamRef.current) return;
     try {
-      const cam = await navigator.mediaDevices.getUserMedia({ video: true });
-      const camTrack = cam.getVideoTracks()[0];
-      const screenTrack = cameraTrackRef.current;
-      replaceVideoForPeers(screenTrack, camTrack);
-      if (screenTrack) {
-        try { stream.removeTrack(screenTrack); } catch (e) { /* ignore */ }
-        screenTrack.stop();
-      }
-      stream.addTrack(camTrack);
-      cameraTrackRef.current = camTrack;
+      const cam = await navigator.mediaDevices.getUserMedia({
+        video: selectedDevices.camera ? { deviceId: { exact: selectedDevices.camera } } : true,
+      });
+      applyVideoTrack(cam.getVideoTracks()[0]);
       setIsScreenSharing(false);
       setVideoOn(true);
-      refreshLocalPreview();
       emitMedia("video", true);
     } catch (e) {
       setError("Could not restore camera");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomID]);
+  }, [roomID, selectedDevices.camera]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!captureMedia) return;
     if (isScreenSharing) return stopScreenShare();
-    const stream = streamRef.current;
-    if (!stream) return;
     try {
       const display = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const screenTrack = display.getVideoTracks()[0];
-      replaceVideoForPeers(cameraTrackRef.current, screenTrack);
-      const old = cameraTrackRef.current;
+      applyVideoTrack(screenTrack);
+      setIsScreenSharing(true);
+      setVideoOn(true);
+      emitMedia("video", true);
+      screenTrack.onended = () => stopScreenShare();
+    } catch (e) {
+      /* cancelled */
+    }
+  }, [captureMedia, isScreenSharing, stopScreenShare]);
+
+  // ---- Device selection ----
+  const setCamera = useCallback(
+    async (deviceId) => {
+      setSelectedDevices((d) => ({ ...d, camera: deviceId }));
+      if (!videoOn || isScreenSharing) return;
+      try {
+        const cam = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } },
+        });
+        applyVideoTrack(cam.getVideoTracks()[0]);
+      } catch (e) {
+        setError("Could not switch camera");
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [videoOn, isScreenSharing]
+  );
+
+  const setMicrophone = useCallback(async (deviceId) => {
+    setSelectedDevices((d) => ({ ...d, mic: deviceId }));
+    const stream = streamRef.current;
+    if (!stream) return;
+    try {
+      const mic = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: { exact: deviceId } },
+      });
+      const newTrack = mic.getAudioTracks()[0];
+      replaceForPeers(audioTrackRef.current, newTrack);
+      const old = audioTrackRef.current;
       if (old) {
+        newTrack.enabled = old.enabled;
         try { stream.removeTrack(old); } catch (e) { /* ignore */ }
         old.stop();
       }
-      stream.addTrack(screenTrack);
-      cameraTrackRef.current = screenTrack;
-      setIsScreenSharing(true);
-      setVideoOn(true);
-      refreshLocalPreview();
-      screenTrack.onended = () => stopScreenShare();
+      stream.addTrack(newTrack);
+      audioTrackRef.current = newTrack;
     } catch (e) {
-      /* user cancelled the picker */
+      setError("Could not switch microphone");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captureMedia, isScreenSharing, stopScreenShare]);
+  }, []);
+
+  const setSpeaker = useCallback((deviceId) => {
+    setSelectedDevices((d) => ({ ...d, speaker: deviceId }));
+  }, []);
+
+  // ---- Recording (captures the tab/screen incl. all tiles) ----
+  const startRecording = useCallback(async () => {
+    try {
+      const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const chunks = [];
+      const rec = new MediaRecorder(display);
+      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      rec.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `connect-recording-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        display.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
+      };
+      display.getVideoTracks()[0].onended = () => {
+        if (rec.state !== "inactive") rec.stop();
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setIsRecording(true);
+    } catch (e) {
+      /* cancelled */
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    try { recorderRef.current?.stop(); } catch (e) { /* ignore */ }
+  }, []);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording) stopRecording();
+    else startRecording();
+  }, [isRecording, startRecording, stopRecording]);
+
+  // ---- Host moderation ----
+  const muteParticipant = useCallback(
+    (socketId) => socketRef.current?.emit("force mute", { roomID, socketId }),
+    [roomID]
+  );
+  const cameraOffParticipant = useCallback(
+    (socketId) => socketRef.current?.emit("force camera off", { roomID, socketId }),
+    [roomID]
+  );
+  const setChatDisabled = useCallback(
+    (disabled) => socketRef.current?.emit("set chat disabled", { roomID, disabled }),
+    [roomID]
+  );
 
   const admit = useCallback(
     (socketId) => socketRef.current?.emit("admit", { roomID, socketId }),
@@ -390,10 +510,21 @@ export function useRoomConnection({
     micOn,
     videoOn,
     isScreenSharing,
+    chatDisabled,
+    devices,
+    selectedDevices,
+    isRecording,
     streamEnded: phase === "ended",
     sendMessage,
     toggleAudio,
     toggleVideo,
     toggleScreenShare,
+    setCamera,
+    setMicrophone,
+    setSpeaker,
+    toggleRecording,
+    muteParticipant,
+    cameraOffParticipant,
+    setChatDisabled,
   };
 }

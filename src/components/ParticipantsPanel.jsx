@@ -7,24 +7,17 @@ const AVATAR_FALLBACK =
   "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png";
 
 const handleOf = (user) =>
-  user?.email ? `@${user.email.split("@")[0]}` : `@${(user?.name || "guest").toLowerCase().replace(/\s+/g, "")}`;
-
-const StatusIcon = ({ on, OnIcon, OffIcon }) => (
-  <span
-    className={`flex h-7 w-7 items-center justify-center rounded-full ${
-      on ? "bg-surface2 text-ink2" : "bg-live/10 text-live"
-    }`}
-  >
-    {on ? <OnIcon size={14} /> : <OffIcon size={14} />}
-  </span>
-);
+  user?.email
+    ? `@${user.email.split("@")[0]}`
+    : `@${(user?.name || "guest").toLowerCase().replace(/\s+/g, "")}`;
 
 // participants: { socketId, user, role, micOn?, videoOn? }
-const ParticipantsPanel = ({ participants = [], meId }) => {
+const ParticipantsPanel = ({ participants = [], meId, isHost, onMute, onCameraOff }) => {
   return (
     <div className="space-y-1 overflow-y-auto">
       {participants.map((p) => {
         const isYou = meId && p.user?.uid === meId;
+        const canModerate = isHost && !isYou;
         return (
           <div
             key={p.socketId}
@@ -47,10 +40,50 @@ const ParticipantsPanel = ({ participants = [], meId }) => {
                 Host
               </span>
             )}
-            <div className="flex items-center gap-1.5">
-              <StatusIcon on={p.micOn !== false} OnIcon={MicOnIcon} OffIcon={MicOffIcon} />
-              <StatusIcon on={p.videoOn !== false} OnIcon={CamOnIcon} OffIcon={CamOffIcon} />
-            </div>
+
+            {canModerate ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  title={p.micOn !== false ? "Mute participant" : "Muted"}
+                  onClick={() => p.micOn !== false && onMute?.(p.socketId)}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                    p.micOn !== false
+                      ? "bg-surface2 text-ink2 hover:bg-live/10 hover:text-live"
+                      : "bg-live/10 text-live"
+                  }`}
+                >
+                  {p.micOn !== false ? <MicOnIcon size={14} /> : <MicOffIcon size={14} />}
+                </button>
+                <button
+                  title={p.videoOn !== false ? "Turn off camera" : "Camera off"}
+                  onClick={() => p.videoOn !== false && onCameraOff?.(p.socketId)}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                    p.videoOn !== false
+                      ? "bg-surface2 text-ink2 hover:bg-live/10 hover:text-live"
+                      : "bg-live/10 text-live"
+                  }`}
+                >
+                  {p.videoOn !== false ? <CamOnIcon size={14} /> : <CamOffIcon size={14} />}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                    p.micOn !== false ? "bg-surface2 text-ink2" : "bg-live/10 text-live"
+                  }`}
+                >
+                  {p.micOn !== false ? <MicOnIcon size={14} /> : <MicOffIcon size={14} />}
+                </span>
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                    p.videoOn !== false ? "bg-surface2 text-ink2" : "bg-live/10 text-live"
+                  }`}
+                >
+                  {p.videoOn !== false ? <CamOnIcon size={14} /> : <CamOffIcon size={14} />}
+                </span>
+              </div>
+            )}
           </div>
         );
       })}
