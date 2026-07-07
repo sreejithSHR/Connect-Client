@@ -49,6 +49,13 @@ export function useRoomConnection({
   const [devices, setDevices] = useState({ cameras: [], mics: [], speakers: [] });
   const [selectedDevices, setSelectedDevices] = useState({ camera: "", mic: "", speaker: "" });
   const [isRecording, setIsRecording] = useState(false);
+  const [recordings, setRecordings] = useState([]); // { id, url, ts }
+
+  const [captionsOn, setCaptionsOn] = useState(false);
+  const [captions, setCaptions] = useState([]); // { id, name, text, self, ts }
+  const [interimCaption, setInterimCaption] = useState("");
+  const recognitionRef = useRef(null);
+  const captionsOnRef = useRef(false);
 
   const socketRef = useRef(null);
   const peersRef = useRef([]);
@@ -194,6 +201,12 @@ export function useRoomConnection({
       socket.on("force mute", () => muteSelf());
       socket.on("force camera off", () => turnCameraOff());
       socket.on("chat disabled", ({ disabled }) => setChatDisabledState(!!disabled));
+      socket.on("caption", ({ socketId, user: u, text, ts }) =>
+        setCaptions((prev) => [
+          ...prev.slice(-199),
+          { id: `${socketId}-${ts}`, name: u?.name || "Guest", text, self: false, ts },
+        ])
+      );
       socket.on("stream ended", () => setPhase("ended"));
       socket.on("error", (e) => setError(e?.message || "Connection error"));
 
@@ -279,6 +292,8 @@ export function useRoomConnection({
     return () => {
       cancelled = true;
       try { recorderRef.current?.stop(); } catch (e) { /* ignore */ }
+      captionsOnRef.current = false;
+      try { recognitionRef.current?.stop(); } catch (e) { /* ignore */ }
       peersRef.current.forEach((p) => p.peer.destroy());
       peersRef.current = [];
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -410,12 +425,81 @@ export function useRoomConnection({
       recorderRef.current.stop();
       return;
     }
-    recorderRef.current = startMeetingRecording(getRecordingStreams, () => {
+    recorderRef.current = startMeetingRecording(getRecordingStreams, (blob) => {
       recorderRef.current = null;
       setIsRecording(false);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setRecordings((prev) => [{ id: Date.now(), url, ts: Date.now() }, ...prev]);
+      }
     });
     setIsRecording(true);
   }, [getRecordingStreams]);
+
+  // ---- Live captions (Web Speech API; each client transcribes its own mic) ----
+  const toggleCaptions = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setError("Live captions aren't supported in this browser (try Chrome).");
+      return;
+    }
+    if (captionsOnRef.current) {
+      captionsOnRef.current = false;
+      setCaptionsOn(false);
+      try { recognitionRef.current?.stop(); } catch (e) { /* ignore */ }
+      recognitionRef.current = null;
+      setInterimCaption("");
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i += 1) {
+        const r = e.results[i];
+        if (r.isFinal) {
+          const text = r[0].transcript.trim();
+          if (text) {
+            const ts = Date.now();
+            setCaptions((prev) => [
+              ...prev.slice(-199),
+              { id: `self-${ts}`, name: user?.displayName || "You", text, self: true, ts },
+            ]);
+            socketRef.current?.emit("caption", { roomID, text });
+          }
+        } else {
+          interim += r[0].transcript;
+        }
+      }
+      setInterimCaption(interim);
+    };
+    rec.onend = () => {
+      if (captionsOnRef.current) {
+        try { rec.start(); } catch (e) { /* ignore */ }
+      }
+    };
+    rec.onerror = () => {};
+    try { rec.start(); } catch (e) { /* ignore */ }
+    recognitionRef.current = rec;
+    captionsOnRef.current = true;
+    setCaptionsOn(true);
+  }, [roomID, user]);
+
+  const downloadTranscript = useCallback(() => {
+    if (!captions.length) return;
+    const lines = captions.map(
+      (c) => `[${new Date(c.ts).toLocaleTimeString()}] ${c.name}: ${c.text}`
+    );
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `connect-transcript-${Date.now()}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [captions]);
 
   // ---- Host moderation ----
   const muteParticipant = useCallback((socketId) => socketRef.current?.emit("force mute", { roomID, socketId }), [roomID]);
@@ -431,10 +515,12 @@ export function useRoomConnection({
     peers, peerStreams, peersRef,
     messages, participants, viewerCount,
     micOn, videoOn, isScreenSharing, chatDisabled,
-    devices, selectedDevices, isRecording,
+    devices, selectedDevices, isRecording, recordings,
+    captionsOn, captions, interimCaption,
     streamEnded: phase === "ended",
     sendMessage, toggleAudio, toggleVideo, toggleScreenShare,
     setCamera, setMicrophone, setSpeaker, toggleRecording,
+    toggleCaptions, downloadTranscript,
     muteParticipant, cameraOffParticipant, setChatDisabled,
   };
 }

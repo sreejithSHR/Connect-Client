@@ -2,7 +2,7 @@ import React from "react";
 
 const Loading = () => {
   return (
-    <div className="flex h-screen items-center justify-center bg-bg">
+    <div className="flex h-screen items-center justify-center bg-transparent">
       <div className="flex flex-col items-center">
         <div
           style={{ borderTopColor: "transparent" }}

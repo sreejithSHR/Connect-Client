@@ -3,6 +3,7 @@ import { IoMic as MicOnIcon, IoMicOff as MicOffIcon } from "react-icons/io5";
 import { IoVideocam as CamOnIcon, IoVideocamOff as CamOffIcon } from "react-icons/io5";
 import { MdScreenShare, MdStopScreenShare } from "react-icons/md";
 import { MdCallEnd as EndIcon } from "react-icons/md";
+import { MdClosedCaption, MdOutlineClosedCaptionOff } from "react-icons/md";
 import { FiSettings as SettingsIcon } from "react-icons/fi";
 import { BsRecordCircle, BsStopCircle } from "react-icons/bs";
 
@@ -35,6 +36,9 @@ const ControlBar = ({
   showRecord = false,
   isRecording = false,
   onToggleRecord,
+  showCaptions = false,
+  captionsOn = false,
+  onToggleCaptions,
   onSettings,
   onEnd,
   extra,
@@ -67,6 +71,15 @@ const ControlBar = ({
           title={isRecording ? "Stop recording" : "Record"}
         >
           {isRecording ? <BsStopCircle /> : <BsRecordCircle />}
+        </CtrlCircle>
+      )}
+      {showCaptions && (
+        <CtrlCircle
+          variant={captionsOn ? "active" : "default"}
+          onClick={onToggleCaptions}
+          title={captionsOn ? "Turn off captions" : "Live captions"}
+        >
+          {captionsOn ? <MdClosedCaption /> : <MdOutlineClosedCaptionOff />}
         </CtrlCircle>
       )}
       {onSettings && (

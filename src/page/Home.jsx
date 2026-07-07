@@ -87,7 +87,7 @@ export default function Home() {
               icon={<PlusCircleIcon />}
               title="Join Meeting"
               desc="Enter with a code"
-              accent="bg-ink"
+              accent="bg-slate-600"
               onClick={requireAuth(() => setJoinOpen(true))}
             />
             <ActionCard

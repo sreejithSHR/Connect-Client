@@ -20,7 +20,7 @@ const App = () => {
     location.pathname.startsWith("/room") || location.pathname.startsWith("/stream");
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg text-ink">
+    <div className="flex h-screen overflow-hidden bg-transparent text-ink">
       <div className="hidden md:block">
         <Sidebar />
       </div>

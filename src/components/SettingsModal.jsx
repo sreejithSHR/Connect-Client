@@ -1,5 +1,6 @@
 import React from "react";
 import Modal from "./Modal";
+import ThemeControls from "./ThemeControls";
 
 const DeviceSelect = ({ label, value, options, onChange, fallbackLabel }) => (
   <div className="mb-4">
@@ -59,6 +60,8 @@ const SettingsModal = ({
       <p className="mt-1 text-xs text-muted">
         Allow camera/mic access for device names to appear.
       </p>
+      <div className="my-4 border-t border-line" />
+      <ThemeControls />
     </Modal>
   );
 };

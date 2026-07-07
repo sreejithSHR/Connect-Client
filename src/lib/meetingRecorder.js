@@ -37,11 +37,11 @@ const drawCover = (ctx, video, x, y, w, h) => {
   ctx.restore();
 };
 
-const downloadBlob = (blob) => {
+export const downloadBlob = (blob, name = `connect-recording-${Date.now()}.webm`) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `connect-recording-${Date.now()}.webm`;
+  a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
@@ -120,8 +120,7 @@ export function startMeetingRecording(getStreams, onStop) {
     videos.clear();
     try { audioCtx.close(); } catch (e) { /* ignore */ }
     canvasStream.getTracks().forEach((t) => t.stop());
-    downloadBlob(new Blob(chunks, { type: "video/webm" }));
-    onStop && onStop();
+    onStop && onStop(new Blob(chunks, { type: "video/webm" }));
   };
   recorder.start(1000);
 

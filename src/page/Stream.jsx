@@ -102,7 +102,7 @@ const StreamPage = () => {
 
   if (!isHost && streamEnded) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-4 bg-transparent text-center">
         <div className="text-5xl">📴</div>
         <h2 className="text-xl font-semibold text-ink">This stream has ended</h2>
         <button
@@ -226,6 +226,7 @@ const StreamPage = () => {
         open={share}
         onClose={() => setShare(false)}
         url={window.location.href}
+        roomId={roomID}
         label="Share your stream"
       />
       <SettingsModal

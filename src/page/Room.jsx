@@ -21,13 +21,15 @@ import ChatPanel from "../components/ChatPanel";
 import ParticipantsPanel from "../components/ParticipantsPanel";
 import ShareModal from "../components/ShareModal";
 import SettingsModal from "../components/SettingsModal";
+import RecordingsModal from "../components/RecordingsModal";
+import { BsCollectionPlay } from "react-icons/bs";
 
 const AVATAR_FALLBACK =
   "https://parkridgevet.com.au/wp-content/uploads/2020/11/Profile-300x300.png";
 const MAX_THUMBS = 5;
 
 const CenterCard = ({ children }) => (
-  <div className="flex h-full items-center justify-center bg-bg p-4">
+  <div className="flex h-full items-center justify-center bg-transparent p-4">
     <div className="w-full max-w-md rounded-3xl bg-surface p-8 text-center shadow-card">{children}</div>
   </div>
 );
@@ -48,7 +50,8 @@ const MeetSession = ({ roomID, prefs }) => {
     phase, isHost, joinRequests, admit, deny,
     loading, localStream, screenStream, peers, peerStreams,
     messages, participants, micOn, videoOn, isScreenSharing, chatDisabled,
-    devices, selectedDevices, isRecording,
+    devices, selectedDevices, isRecording, recordings,
+    captionsOn, captions, interimCaption, toggleCaptions, downloadTranscript,
     sendMessage, toggleAudio, toggleVideo, toggleScreenShare,
     setCamera, setMicrophone, setSpeaker, toggleRecording,
     muteParticipant, cameraOffParticipant, setChatDisabled,
@@ -60,6 +63,7 @@ const MeetSession = ({ roomID, prefs }) => {
   const [activeId, setActiveId] = useState("local");
   const [panelOpen, setPanelOpen] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [recordingsOpen, setRecordingsOpen] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -133,7 +137,7 @@ const MeetSession = ({ roomID, prefs }) => {
   const iconBtn = "flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface2 hover:text-ink";
 
   return (
-    <div ref={containerRef} className="flex h-full gap-3 bg-bg p-3">
+    <div ref={containerRef} style={{ background: "var(--app-bg)" }} className="flex h-full gap-3 p-3">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Header */}
         <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card">
@@ -147,6 +151,14 @@ const MeetSession = ({ roomID, prefs }) => {
             <p className="text-xs text-muted">{participants.length} Participant{participants.length === 1 ? "" : "s"}</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
+            {recordings.length > 0 && (
+              <button onClick={() => setRecordingsOpen(true)} title="Recordings" className={`${iconBtn} relative`}>
+                <BsCollectionPlay size={18} />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+                  {recordings.length}
+                </span>
+              </button>
+            )}
             <button onClick={() => setShare(true)} title="Share meeting" className={iconBtn}>
               <ShareIcon size={18} />
             </button>
@@ -204,6 +216,33 @@ const MeetSession = ({ roomID, prefs }) => {
             </div>
           )}
 
+          {/* Live captions */}
+          {captionsOn && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-24 flex flex-col items-center gap-1 px-4">
+              {captions.slice(-2).map((c) => (
+                <div key={c.id} className="max-w-2xl rounded-lg bg-black/70 px-3 py-1.5 text-center text-sm text-white backdrop-blur">
+                  <span className="font-semibold text-brand">{c.name}: </span>
+                  {c.text}
+                </div>
+              ))}
+              {interimCaption && (
+                <div className="max-w-2xl rounded-lg bg-black/50 px-3 py-1.5 text-center text-sm italic text-white/80 backdrop-blur">
+                  {interimCaption}
+                </div>
+              )}
+            </div>
+          )}
+
+          {captions.length > 0 && (
+            <button
+              onClick={downloadTranscript}
+              title="Download transcript"
+              className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur hover:bg-black/80"
+            >
+              ⭳ Transcript
+            </button>
+          )}
+
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <ControlBar
               micOn={micOn}
@@ -216,6 +255,9 @@ const MeetSession = ({ roomID, prefs }) => {
               showRecord
               isRecording={isRecording}
               onToggleRecord={toggleRecording}
+              showCaptions
+              captionsOn={captionsOn}
+              onToggleCaptions={toggleCaptions}
               onSettings={() => setSettingsOpen(true)}
               onEnd={leave}
             />
@@ -239,7 +281,7 @@ const MeetSession = ({ roomID, prefs }) => {
               </button>
             ))}
             {extraThumbs > 0 && (
-              <div className="flex aspect-video w-40 shrink-0 items-center justify-center rounded-2xl bg-ink text-lg font-bold text-white">
+              <div className="flex aspect-video w-40 shrink-0 items-center justify-center rounded-2xl bg-surface3 text-lg font-bold text-ink">
                 +{extraThumbs}
               </div>
             )}
@@ -271,10 +313,10 @@ const MeetSession = ({ roomID, prefs }) => {
 
         <div className="flex min-h-0 flex-1 flex-col rounded-2xl bg-surface p-4 shadow-card">
           <div className="mb-4 flex rounded-full bg-surface2 p-1">
-            <button onClick={() => setTab("participants")} className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${tab === "participants" ? "bg-ink text-white" : "text-muted hover:text-ink"}`}>
+            <button onClick={() => setTab("participants")} className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${tab === "participants" ? "bg-brand text-white" : "text-muted hover:text-ink"}`}>
               Participants ({participants.length})
             </button>
-            <button onClick={() => setTab("chat")} className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${tab === "chat" ? "bg-ink text-white" : "text-muted hover:text-ink"}`}>
+            <button onClick={() => setTab("chat")} className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${tab === "chat" ? "bg-brand text-white" : "text-muted hover:text-ink"}`}>
               Chat
             </button>
           </div>
@@ -316,7 +358,8 @@ const MeetSession = ({ roomID, prefs }) => {
         </div>
       </aside>
 
-      <ShareModal open={share} onClose={() => setShare(false)} url={window.location.href} label="Share this link to invite people to the meeting" />
+      <ShareModal open={share} onClose={() => setShare(false)} url={window.location.href} roomId={roomID} label="Share this link to invite people to the meeting" />
+      <RecordingsModal open={recordingsOpen} onClose={() => setRecordingsOpen(false)} recordings={recordings} />
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

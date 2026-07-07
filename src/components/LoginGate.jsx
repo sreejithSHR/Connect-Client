@@ -8,7 +8,7 @@ const LoginGate = ({ children, message = "Sign in to continue" }) => {
   if (user) return children;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-bg px-4 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-transparent px-4 text-center">
       <div className="text-2xl font-extrabold text-ink">
         Con<span className="text-brand">nect</span>
       </div>

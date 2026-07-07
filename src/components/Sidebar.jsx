@@ -40,7 +40,7 @@ const Sidebar = () => {
             }
           >
             {item.icon}
-            <span className="pointer-events-none absolute left-14 z-20 origin-left scale-0 whitespace-nowrap rounded-lg bg-ink px-2 py-1 text-xs font-medium text-white shadow-float transition-transform group-hover:scale-100">
+            <span className="pointer-events-none absolute left-14 z-20 origin-left scale-0 whitespace-nowrap rounded-lg border border-line bg-surface3 px-2 py-1 text-xs font-medium text-ink shadow-float transition-transform group-hover:scale-100">
               {item.text}
             </span>
           </NavLink>

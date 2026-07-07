@@ -4,26 +4,67 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap");
 
+/* ---- Theme tokens (R G B channels) ---- */
+:root,
+:root[data-theme="light"] {
+  --c-bg: 233 235 241;
+  --c-surface: 255 255 255;
+  --c-surface2: 244 245 248;
+  --c-surface3: 234 236 242;
+  --c-line: 226 229 238;
+  --c-ink: 26 29 36;
+  --c-ink2: 61 66 77;
+  --c-muted: 122 128 142;
+  --c-brand: 79 70 229;
+  --c-brand-hover: 67 56 202;
+  --c-brand-soft: 238 240 254;
+  --c-stream: 145 71 255;
+  --c-stream-hover: 119 44 232;
+  --c-live: 240 68 93;
+  --c-live-hover: 224 45 77;
+  --c-success: 22 179 100;
+  --app-bg: linear-gradient(140deg, #eef1f8 0%, #e2e7f3 100%);
+}
+
+:root[data-theme="dark"] {
+  --c-bg: 14 14 17;
+  --c-surface: 24 24 28;
+  --c-surface2: 32 32 38;
+  --c-surface3: 42 42 50;
+  --c-line: 48 48 57;
+  --c-ink: 240 240 243;
+  --c-ink2: 205 206 214;
+  --c-muted: 148 150 162;
+  --c-brand: 129 114 255;
+  --c-brand-hover: 108 92 245;
+  --c-brand-soft: 42 38 74;
+  --c-stream: 163 106 255;
+  --c-stream-hover: 138 74 246;
+  --c-live: 244 84 108;
+  --c-live-hover: 232 60 86;
+  --c-success: 46 197 122;
+  --app-bg: radial-gradient(1200px 800px at 15% -10%, #1b1436 0%, transparent 55%),
+    radial-gradient(1000px 700px at 110% 10%, #10233f 0%, transparent 50%),
+    linear-gradient(140deg, #0c0c10 0%, #111018 100%);
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-
 html,
 body,
 #root {
   height: 100%;
 }
-
 body {
   font-family: "Inter", "Poppins", system-ui, sans-serif;
-  background-color: #e9ebf1;
-  color: #1a1d24;
+  color: rgb(var(--c-ink));
+  background: var(--app-bg) fixed;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Slim, light scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -32,13 +73,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d7e0;
+  background: rgb(var(--c-surface3));
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #bcc0cc;
-}
-
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

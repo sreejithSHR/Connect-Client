@@ -55,14 +55,14 @@ const PreJoin = ({ onJoin, heading = "Ready to join?", cta = "Join now" }) => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+    <div className="flex min-h-screen items-center justify-center bg-transparent p-4">
       <div className="w-full max-w-3xl rounded-3xl bg-surface p-6 shadow-card sm:p-8">
         <h1 className="mb-1 text-center text-2xl font-bold text-ink">{heading}</h1>
         <p className="mb-6 text-center text-sm text-muted">
           Check your camera and microphone before joining.
         </p>
 
-        <div className="relative mx-auto aspect-video w-full overflow-hidden rounded-2xl bg-ink">
+        <div className="relative mx-auto aspect-video w-full overflow-hidden rounded-2xl bg-black">
           <video
             ref={videoRef}
             autoPlay
