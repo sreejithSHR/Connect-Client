@@ -6,7 +6,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
 import { io } from "socket.io-client";
 
-import { SOCKET_URL, MODES, ROLES } from "../config";
+import {
+  SOCKET_URL, MODES, ROLES, CAMERA_CONSTRAINTS, SCREEN_CONSTRAINTS, VIDEO_CAPS,
+} from "../config";
 import { getIdToken } from "../api/token";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -16,12 +18,28 @@ import joinSFX from "../sounds/join.mp3";
 import leaveSFX from "../sounds/leave.mp3";
 import msgSFX from "../sounds/message.mp3";
 
+// Cap outgoing video on one peer connection. Every peer gets its own encode +
+// upload, so this is what keeps a 30-viewer stream within a home uplink.
+const capVideo = (peer, caps) => {
+  const pc = peer?._pc; // simple-peer's underlying RTCPeerConnection
+  if (!pc || pc.signalingState === "closed") return;
+  pc.getTransceivers()
+    .filter((t) => t.sender && t.receiver.track?.kind === "video")
+    .forEach(({ sender }) => {
+      const params = sender.getParameters();
+      if (!params.encodings?.length) return; // receive-only: nothing to cap
+      Object.assign(params.encodings[0], caps);
+      sender.setParameters(params).catch(() => {});
+    });
+};
+
 export function useRoomConnection({
   roomID,
   mode,
   role,
   initialAudio = true,
   initialVideo = true,
+  enabled = true, // wait to connect (e.g. until the stream row exists)
 }) {
   const { user } = useAuth();
 
@@ -69,8 +87,12 @@ export function useRoomConnection({
   const cameraWasOnRef = useRef(true);
   const peerStreamsRef = useRef({});
   const recorderRef = useRef(null);
+  const iceServersRef = useRef(undefined); // undefined -> simple-peer's default STUN
 
   useEffect(() => { peerStreamsRef.current = peerStreams; }, [peerStreams]);
+
+  const currentCaps = () => (isScreenSharingRef.current ? VIDEO_CAPS.screen : VIDEO_CAPS.camera);
+  const capAllPeers = () => peersRef.current.forEach(({ peer }) => capVideo(peer, currentCaps()));
 
   // Swap the track sent to all peers (camera <-> screen <-> null).
   const replaceSent = (newTrack) => {
@@ -93,10 +115,22 @@ export function useRoomConnection({
     peer.on("stream", (remote) =>
       setPeerStreams((prev) => ({ ...prev, [peerID]: remote }))
     );
+    peer.on("connect", () => capVideo(peer, currentCaps()));
+    // ICE failure etc. simple-peer destroys itself; "user left" cleans up state.
+    peer.on("error", (e) => console.warn(`[peer ${peerID}]`, e.code || e.message));
   }, []);
 
+  // trickle: true sends ICE candidates as they're found instead of waiting for
+  // all of them (seconds faster to connect, much more so with TURN).
+  const peerOptions = (initiator, stream) => ({
+    initiator,
+    trickle: true,
+    stream: stream || undefined,
+    config: iceServersRef.current ? { iceServers: iceServersRef.current } : undefined,
+  });
+
   const createPeer = useCallback((userToSignal, callerID, stream) => {
-    const peer = new Peer({ initiator: true, trickle: false, stream: stream || undefined });
+    const peer = new Peer(peerOptions(true, stream));
     peer.on("signal", (signal) =>
       socketRef.current?.emit("sending signal", { userToSignal, callerID, signal })
     );
@@ -104,7 +138,7 @@ export function useRoomConnection({
   }, []);
 
   const addPeer = useCallback((incomingSignal, callerID, stream) => {
-    const peer = new Peer({ initiator: false, trickle: false, stream: stream || undefined });
+    const peer = new Peer(peerOptions(false, stream));
     peer.on("signal", (signal) =>
       socketRef.current?.emit("returning signal", { signal, callerID })
     );
@@ -144,11 +178,14 @@ export function useRoomConnection({
   }, [roomID]);
 
   useEffect(() => {
-    if (!user || !roomID) return undefined;
+    if (!user || !roomID || !enabled) return undefined;
     let cancelled = false;
 
     const start = async () => {
       const token = await getIdToken();
+      // TURN credentials must be in hand before any peer is created.
+      const ice = await api.getIceServers().catch(() => null);
+      if (ice?.iceServers) iceServersRef.current = ice.iceServers;
       const socket = io(SOCKET_URL, { auth: { token } });
       socketRef.current = socket;
 
@@ -208,12 +245,20 @@ export function useRoomConnection({
         ])
       );
       socket.on("stream ended", () => setPhase("ended"));
-      socket.on("error", (e) => setError(e?.message || "Connection error"));
+      socket.on("room full", () => setPhase("full"));
+      // Server errors before admission mean the join itself failed.
+      socket.on("error", (e) => {
+        setError(e?.message || "Connection error");
+        setPhase((p) => (p === "connecting" ? "error" : p));
+      });
 
       let stream = null;
       if (captureMedia) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: CAMERA_CONSTRAINTS,
+            audio: true,
+          });
         } catch (err) {
           setError("Camera/microphone access denied");
         }
@@ -258,6 +303,13 @@ export function useRoomConnection({
       });
 
       socket.on("user joined", (payload) => {
+        // With trickle ICE the caller sends its offer and then each candidate as
+        // separate signals; only the first one creates the peer.
+        const known = peersRef.current.find((p) => p.peerID === payload.callerID);
+        if (known) {
+          known.peer.signal(payload.signal);
+          return;
+        }
         new Audio(joinSFX).play().catch(() => {});
         const peer = addPeer(payload.signal, payload.callerID, sendsStream ? streamRef.current : null);
         trackPeerStream(payload.callerID, peer);
@@ -301,7 +353,7 @@ export function useRoomConnection({
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-  }, [user, roomID, mode, role]);
+  }, [user, roomID, mode, role, enabled]);
 
   const sendMessage = useCallback(
     (text) => {
@@ -323,7 +375,9 @@ export function useRoomConnection({
   const turnCameraOn = useCallback(async (deviceId) => {
     try {
       const cam = await navigator.mediaDevices.getUserMedia({
-        video: deviceId ? { deviceId: { exact: deviceId } } : true,
+        video: deviceId
+          ? { ...CAMERA_CONSTRAINTS, deviceId: { exact: deviceId } }
+          : CAMERA_CONSTRAINTS,
       });
       const newTrack = cam.getVideoTracks()[0];
       replaceSent(newTrack);
@@ -360,14 +414,16 @@ export function useRoomConnection({
     setScreenStream(null);
     isScreenSharingRef.current = false;
     setIsScreenSharing(false);
+    capAllPeers();
   }, []);
 
   const toggleScreenShare = useCallback(async () => {
     if (!captureMedia) return;
     if (isScreenSharing) return stopScreenShare();
     try {
-      const display = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const display = await navigator.mediaDevices.getDisplayMedia({ video: SCREEN_CONSTRAINTS });
       const screenTrack = display.getVideoTracks()[0];
+      screenTrack.contentHint = "detail"; // encoder keeps text sharp over smooth motion
       cameraWasOnRef.current = videoOn;
       replaceSent(screenTrack); // peers see the screen; camera stays alive for PiP
       screenTrackRef.current = screenTrack;
@@ -375,6 +431,7 @@ export function useRoomConnection({
       setScreenStream(display);
       isScreenSharingRef.current = true;
       setIsScreenSharing(true);
+      capAllPeers();
       screenTrack.onended = () => stopScreenShare();
     } catch (e) {
       /* cancelled */

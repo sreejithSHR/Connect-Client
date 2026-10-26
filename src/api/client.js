@@ -20,6 +20,13 @@ async function request(path, { method = "GET", body } = {}) {
 }
 
 export const api = {
+  // auth
+  authProviders: () => request("/api/auth/providers"),
+  register: (data) => request("/api/auth/register", { method: "POST", body: data }),
+  login: (data) => request("/api/auth/login", { method: "POST", body: data }),
+  loginWithGoogle: (credential) =>
+    request("/api/auth/google", { method: "POST", body: { credential } }),
+  me: () => request("/api/auth/me"),
   // streams
   listStreams: () => request("/api/streams"),
   getStream: (id) => request(`/api/streams/${id}`),
@@ -30,4 +37,6 @@ export const api = {
   getRoom: (id) => request(`/api/rooms/${id}`),
   // chat
   getMessages: (roomId) => request(`/api/messages/${roomId}`),
+  // WebRTC ICE servers (STUN + short-lived TURN credentials)
+  getIceServers: () => request("/api/ice"),
 };

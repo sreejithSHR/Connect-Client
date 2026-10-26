@@ -35,15 +35,19 @@ const StreamPage = () => {
     mediaMode: MEDIA_MODES.INTERACTIVE,
     host: null,
   });
-  const [metaReady, setMetaReady] = useState(isHost);
+  const [metaReady, setMetaReady] = useState(false);
+  const [goLiveError, setGoLiveError] = useState(null);
   const [share, setShare] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // The server only accepts us as host once this Stream row exists, so the
+  // connection waits for it (metaReady gates useRoomConnection below).
   useEffect(() => {
     if (!isHost || !user) return;
     api
       .goLive({ roomID, title: location.state?.title, category: location.state?.category })
-      .catch(() => {});
+      .then(() => setMetaReady(true))
+      .catch((e) => setGoLiveError(e.message || "Could not go live"));
   }, [isHost, user, roomID, location.state]);
 
   useEffect(() => {
@@ -63,6 +67,7 @@ const StreamPage = () => {
   }, [isHost, user, roomID]);
 
   const {
+    phase,
     loading,
     localStream,
     screenStream,
@@ -85,7 +90,7 @@ const StreamPage = () => {
     setCamera,
     setMicrophone,
     setSpeaker,
-  } = useRoomConnection({ roomID, mode: MODES.STREAM, role });
+  } = useRoomConnection({ roomID, mode: MODES.STREAM, role, enabled: metaReady });
 
   const hostPeer = useMemo(
     () => peers.find((p) => p.role === ROLES.HOST) || peers[0],
@@ -98,13 +103,19 @@ const StreamPage = () => {
     window.location.reload();
   };
 
-  if (loading || !metaReady) return <Loading />;
+  const status = goLiveError
+    ? { icon: "⚠️", title: goLiveError }
+    : phase === "full"
+    ? { icon: "🎟️", title: "This stream is full right now — try again in a bit" }
+    : !isHost && streamEnded
+    ? { icon: "📴", title: "This stream has ended" }
+    : null;
 
-  if (!isHost && streamEnded) {
+  if (status) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 bg-transparent text-center">
-        <div className="text-5xl">📴</div>
-        <h2 className="text-xl font-semibold text-ink">This stream has ended</h2>
+        <div className="text-5xl">{status.icon}</div>
+        <h2 className="text-xl font-semibold text-ink">{status.title}</h2>
         <button
           onClick={() => navigate("/browse")}
           className="rounded-full bg-brand px-5 py-2.5 font-semibold text-white hover:bg-brandHover"
@@ -114,6 +125,8 @@ const StreamPage = () => {
       </div>
     );
   }
+
+  if (loading || !metaReady) return <Loading />;
 
   const hostName = (isHost ? user?.displayName : meta.host?.name) || "Streamer";
   const hostPhoto = (isHost ? user?.photoURL : meta.host?.photoURL) || AVATAR_FALLBACK;

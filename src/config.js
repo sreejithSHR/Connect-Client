@@ -21,6 +21,23 @@ export const MEDIA_MODES = {
   HLS: "hls", // phase 2
 };
 
+// 720p media caps. Media is peer-to-peer, so every viewer/peer costs the sender
+// one more encode + upload of these: ~1 Mbps camera, ~0.6 Mbps screen.
+export const CAMERA_CONSTRAINTS = {
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+  frameRate: { max: 24 },
+};
+export const SCREEN_CONSTRAINTS = {
+  width: { max: 1280 },
+  height: { max: 720 },
+  frameRate: { max: 5 }, // text stays sharp; motion isn't the point of a screen
+};
+export const VIDEO_CAPS = {
+  camera: { maxBitrate: 1_000_000, maxFramerate: 24 },
+  screen: { maxBitrate: 600_000, maxFramerate: 5 },
+};
+
 export const STREAM_CATEGORIES = [
   "Just Chatting",
   "Gaming",

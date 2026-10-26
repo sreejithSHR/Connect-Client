@@ -8,6 +8,7 @@ import Browse from "../page/Browse";
 import Room from "../page/Room";
 import Stream from "../page/Stream";
 import NotFound from "../page/NotFound";
+import SignIn from "../page/SignIn";
 
 import { Routes, Route, useLocation } from "react-router-dom";
 
@@ -30,6 +31,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/browse" element={<Browse />} />
+            <Route path="/login" element={<SignIn />} />
             <Route path="/room/:roomID" element={<Room />} />
             <Route path="/stream/:roomID" element={<Stream />} />
             <Route path="*" element={<NotFound />} />

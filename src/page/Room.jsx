@@ -47,7 +47,7 @@ const MeetSession = ({ roomID, prefs }) => {
   });
 
   const {
-    phase, isHost, joinRequests, admit, deny,
+    phase, isHost, joinRequests, admit, deny, error,
     loading, localStream, screenStream, peers, peerStreams,
     messages, participants, micOn, videoOn, isScreenSharing, chatDisabled,
     devices, selectedDevices, isRecording, recordings,
@@ -121,6 +121,17 @@ const MeetSession = ({ roomID, prefs }) => {
         <h2 className="text-lg font-semibold text-ink">Waiting for the host to let you in…</h2>
         <p className="mt-1 text-sm text-muted">You'll join automatically once admitted.</p>
         <button onClick={leave} className="mt-6 text-sm font-medium text-muted hover:text-ink">Cancel</button>
+      </CenterCard>
+    );
+  }
+  if (phase === "full" || phase === "error") {
+    return (
+      <CenterCard>
+        <div className="mb-3 text-4xl">{phase === "full" ? "🎟️" : "⚠️"}</div>
+        <h2 className="text-lg font-semibold text-ink">
+          {phase === "full" ? "This meeting is full" : error || "Couldn't join this meeting"}
+        </h2>
+        <button onClick={() => navigate("/")} className="mt-6 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brandHover">Back to home</button>
       </CenterCard>
     );
   }

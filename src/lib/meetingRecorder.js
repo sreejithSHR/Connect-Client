@@ -37,7 +37,29 @@ const drawCover = (ctx, video, x, y, w, h) => {
   ctx.restore();
 };
 
-export const downloadBlob = (blob, name = `connect-recording-${Date.now()}.webm`) => {
+// Frame clock for the compositor. requestAnimationFrame stops (and main-thread
+// timers throttle to ~1/s) when the tab is hidden, which froze recordings the
+// moment the host switched tabs. Timers inside a Worker keep their rate.
+const createTicker = (fps) => {
+  const src = `let id; onmessage = (e) => {
+    clearInterval(id);
+    if (e.data > 0) id = setInterval(() => postMessage(0), e.data);
+  };`;
+  const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+  const worker = new Worker(url);
+  return {
+    start(onTick) {
+      worker.onmessage = onTick;
+      worker.postMessage(Math.round(1000 / fps));
+    },
+    stop() {
+      worker.terminate();
+      URL.revokeObjectURL(url);
+    },
+  };
+};
+
+export const downloadBlob =(blob, name = `connect-recording-${Date.now()}.webm`) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -57,7 +79,7 @@ export function startMeetingRecording(getStreams, onStop) {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const audioCtx = new AudioCtx();
   const dest = audioCtx.createMediaStreamDestination();
-  let raf = null;
+  const ticker = createTicker(30);
 
   const ensure = (item) => {
     if (!videos.has(item.id)) {
@@ -97,10 +119,9 @@ export function startMeetingRecording(getStreams, onStop) {
       const cy = Math.floor(i / cols) * ch;
       drawCover(ctx, v, cx + 6, cy + 6, cw - 12, ch - 12);
     });
-
-    raf = requestAnimationFrame(draw);
   };
   draw();
+  ticker.start(draw);
 
   const canvasStream = canvas.captureStream(30);
   const mixed = new MediaStream([
@@ -113,7 +134,7 @@ export function startMeetingRecording(getStreams, onStop) {
   const recorder = new MediaRecorder(mixed, mime ? { mimeType: mime } : undefined);
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = () => {
-    if (raf) cancelAnimationFrame(raf);
+    ticker.stop();
     videos.forEach((v) => {
       v.srcObject = null;
     });
