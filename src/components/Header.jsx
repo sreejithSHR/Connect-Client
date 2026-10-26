@@ -12,7 +12,7 @@ const navClass = ({ isActive }) =>
   }`;
 
 const Header = () => {
-  const { user, login, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { theme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -59,12 +59,12 @@ const Header = () => {
             </div>
           </div>
         ) : (
-          <button
+          <Link
+            to="/login"
             className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brandHover"
-            onClick={login}
           >
             Login
-          </button>
+          </Link>
         )}
       </div>
     </header>
