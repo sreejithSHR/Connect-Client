@@ -8,11 +8,13 @@ import { io } from "socket.io-client";
 
 import {
   SOCKET_URL, MODES, ROLES, CAMERA_CONSTRAINTS, SCREEN_CONSTRAINTS, VIDEO_CAPS,
+  SCREEN_SMOOTH_MAX_PEERS, SFU_SCREEN_CONSTRAINTS, SFU_LAYERS,
 } from "../config";
 import { getIdToken } from "../api/token";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { startMeetingRecording } from "../lib/meetingRecorder";
+import { connectSfuReceiver, connectSfuSender } from "../lib/sfu";
 
 import joinSFX from "../sounds/join.mp3";
 import leaveSFX from "../sounds/leave.mp3";
@@ -23,12 +25,14 @@ import msgSFX from "../sounds/message.mp3";
 const capVideo = (peer, caps) => {
   const pc = peer?._pc; // simple-peer's underlying RTCPeerConnection
   if (!pc || pc.signalingState === "closed") return;
+  const { degradationPreference = "balanced", ...encodingCaps } = caps;
   pc.getTransceivers()
     .filter((t) => t.sender && t.receiver.track?.kind === "video")
     .forEach(({ sender }) => {
       const params = sender.getParameters();
       if (!params.encodings?.length) return; // receive-only: nothing to cap
-      Object.assign(params.encodings[0], caps);
+      Object.assign(params.encodings[0], encodingCaps);
+      params.degradationPreference = degradationPreference;
       sender.setParameters(params).catch(() => {});
     });
 };
@@ -88,14 +92,91 @@ export function useRoomConnection({
   const peerStreamsRef = useRef({});
   const recorderRef = useRef(null);
   const iceServersRef = useRef(undefined); // undefined -> simple-peer's default STUN
+  // Live streams through the server's SFU (instead of simple-peer):
+  // { close, transport?, audio?, video?, queue? }. The host keeps ONE video
+  // producer and swaps camera <-> screen on it, like replaceSent does for peers.
+  const sfuRef = useRef(null);
 
   useEffect(() => { peerStreamsRef.current = peerStreams; }, [peerStreams]);
 
-  const currentCaps = () => (isScreenSharingRef.current ? VIDEO_CAPS.screen : VIDEO_CAPS.camera);
-  const capAllPeers = () => peersRef.current.forEach(({ peer }) => capVideo(peer, currentCaps()));
+  const currentCaps = () => {
+    if (!isScreenSharingRef.current) return VIDEO_CAPS.camera;
+    return peersRef.current.length <= SCREEN_SMOOTH_MAX_PEERS ? VIDEO_CAPS.screen : VIDEO_CAPS.screenMany;
+  };
+
+  // Per-layer bitrate/fps for the SFU video producer (camera vs screen).
+  const applySfuLayers = () => {
+    const sender = sfuRef.current?.video?.rtpSender;
+    if (!sender) return;
+    const layers = isScreenSharingRef.current ? SFU_LAYERS.screen : SFU_LAYERS.camera;
+    const params = sender.getParameters();
+    if (!params.encodings?.length) return;
+    params.encodings.forEach((e, i) => Object.assign(e, layers[i]));
+    params.degradationPreference = "balanced";
+    sender.setParameters(params).catch(() => {});
+  };
+
+  const capAllPeers = () => {
+    peersRef.current.forEach(({ peer }) => capVideo(peer, currentCaps()));
+    applySfuLayers();
+  };
+
+  // Send `track` (or nothing) as the stream's video. Calls are queued: a second
+  // swap must not race the first produce() and open two producers.
+  const setSfuVideo = (track) => {
+    const s = sfuRef.current;
+    if (!s?.transport) return;
+    s.queue = s.queue
+      .then(async () => {
+        if (s.video) await s.video.replaceTrack({ track });
+        else if (track) {
+          const layers = isScreenSharingRef.current ? SFU_LAYERS.screen : SFU_LAYERS.camera;
+          s.video = await s.transport.produce({ track, encodings: layers, stopTracks: false });
+        }
+        applySfuLayers();
+      })
+      .catch((e) => console.warn("[sfu] video:", e.message));
+  };
+
+  // Viewer: put each of the host's tracks into one MediaStream per host. A new
+  // MediaStream object each time, so VideoTile re-attaches it.
+  const onSfuTrack = ({ track, socketId, user: hostUser }) => {
+    setPeers((prev) =>
+      prev.some((p) => p.peerID === socketId)
+        ? prev
+        : [...prev, { peerID: socketId, peer: null, user: hostUser, role: ROLES.HOST, micOn: true, videoOn: true }]
+    );
+    setPeerStreams((prev) => {
+      const kept = (prev[socketId]?.getTracks() || []).filter((t) => t.kind !== track.kind);
+      return { ...prev, [socketId]: new MediaStream([...kept, track]) };
+    });
+  };
+  const onSfuTrackEnded = ({ track, socketId }) =>
+    setPeerStreams((prev) => {
+      if (!prev[socketId]) return prev;
+      const kept = prev[socketId].getTracks().filter((t) => t !== track);
+      return { ...prev, [socketId]: new MediaStream(kept) };
+    });
+
+  const startSfu = async (socket) => {
+    let conn;
+    if (sendsStream) {
+      conn = await connectSfuSender(socket);
+      conn.queue = Promise.resolve();
+      const mic = streamRef.current?.getAudioTracks()[0];
+      if (mic) conn.audio = await conn.transport.produce({ track: mic, stopTracks: false });
+    } else {
+      conn = await connectSfuReceiver(socket, { onTrack: onSfuTrack, onTrackEnded: onSfuTrackEnded });
+    }
+    if (socketRef.current !== socket) return conn.close(); // left while connecting
+    sfuRef.current = conn;
+    const cam = cameraTrackRef.current;
+    if (sendsStream && cam?.readyState === "live") setSfuVideo(cam);
+  };
 
   // Swap the track sent to all peers (camera <-> screen <-> null).
   const replaceSent = (newTrack) => {
+    setSfuVideo(newTrack);
     if (!registeredKeyRef.current && !newTrack) return;
     peersRef.current.forEach(({ peer }) => {
       try {
@@ -115,7 +196,7 @@ export function useRoomConnection({
     peer.on("stream", (remote) =>
       setPeerStreams((prev) => ({ ...prev, [peerID]: remote }))
     );
-    peer.on("connect", () => capVideo(peer, currentCaps()));
+    peer.on("connect", () => capAllPeers()); // room size changed: re-pick screen fps for everyone
     // ICE failure etc. simple-peer destroys itself; "user left" cleans up state.
     peer.on("error", (e) => console.warn(`[peer ${peerID}]`, e.code || e.message));
   }, []);
@@ -224,7 +305,16 @@ export function useRoomConnection({
       });
 
       socket.on("waiting", () => setPhase("waiting"));
-      socket.on("admitted", ({ host }) => { setIsHost(!!host); setPhase("live"); });
+      socket.on("admitted", ({ host, media }) => {
+        setIsHost(!!host);
+        setPhase("live");
+        if (media === "sfu") {
+          startSfu(socket).catch((e) => {
+            console.warn("[sfu]", e.message);
+            setError("Could not connect to the stream's media server");
+          });
+        }
+      });
       socket.on("denied", () => setPhase("denied"));
       socket.on("host changed", () => setIsHost(true));
       socket.on("join request", ({ socketId, user: u }) =>
@@ -330,6 +420,7 @@ export function useRoomConnection({
         const obj = peersRef.current.find((p) => p.peerID === id);
         obj?.peer.destroy();
         peersRef.current = peersRef.current.filter((p) => p.peerID !== id);
+        capAllPeers();
         setPeers((prev) => prev.filter((p) => p.peerID !== id));
         setPeerStreams((prev) => {
           const n = { ...prev };
@@ -348,6 +439,8 @@ export function useRoomConnection({
       try { recognitionRef.current?.stop(); } catch (e) { /* ignore */ }
       peersRef.current.forEach((p) => p.peer.destroy());
       peersRef.current = [];
+      sfuRef.current?.close();
+      sfuRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       socketRef.current?.disconnect();
@@ -421,7 +514,9 @@ export function useRoomConnection({
     if (!captureMedia) return;
     if (isScreenSharing) return stopScreenShare();
     try {
-      const display = await navigator.mediaDevices.getDisplayMedia({ video: SCREEN_CONSTRAINTS });
+      const display = await navigator.mediaDevices.getDisplayMedia({
+        video: sfuRef.current ? SFU_SCREEN_CONSTRAINTS : SCREEN_CONSTRAINTS,
+      });
       const screenTrack = display.getVideoTracks()[0];
       screenTrack.contentHint = "detail"; // encoder keeps text sharp over smooth motion
       cameraWasOnRef.current = videoOn;
@@ -455,6 +550,7 @@ export function useRoomConnection({
       peersRef.current.forEach(({ peer }) => {
         try { peer.replaceTrack(old, newTrack, stream); } catch (e) { /* ignore */ }
       });
+      sfuRef.current?.audio?.replaceTrack({ track: newTrack }).catch(() => {});
       if (old) { newTrack.enabled = old.enabled; try { stream.removeTrack(old); } catch (e) {} old.stop(); }
       stream.addTrack(newTrack);
     } catch (e) {

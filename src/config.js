@@ -22,7 +22,7 @@ export const MEDIA_MODES = {
 };
 
 // 720p media caps. Media is peer-to-peer, so every viewer/peer costs the sender
-// one more encode + upload of these: ~1 Mbps camera, ~0.6 Mbps screen.
+// one more encode + upload of these: ~1 Mbps camera, up to ~1.5 Mbps screen.
 export const CAMERA_CONSTRAINTS = {
   width: { ideal: 1280 },
   height: { ideal: 720 },
@@ -31,11 +31,39 @@ export const CAMERA_CONSTRAINTS = {
 export const SCREEN_CONSTRAINTS = {
   width: { max: 1280 },
   height: { max: 720 },
-  frameRate: { max: 5 }, // text stays sharp; motion isn't the point of a screen
+  frameRate: { ideal: 30, max: 30 },
 };
+// Screen share sends one copy per peer, so fps scales with the room: 30 fps
+// while sending to a few peers, 15 fps once the upload multiplies.
+export const SCREEN_SMOOTH_MAX_PEERS = 3;
+// degradationPreference "balanced": under a weak uplink, drop a bit of both
+// resolution and fps instead of freezing frames to keep full resolution.
 export const VIDEO_CAPS = {
   camera: { maxBitrate: 1_000_000, maxFramerate: 24 },
-  screen: { maxBitrate: 600_000, maxFramerate: 5 },
+  screen: { maxBitrate: 2_000_000, maxFramerate: 30, degradationPreference: "balanced" },
+  screenMany: { maxBitrate: 1_500_000, maxFramerate: 15, degradationPreference: "balanced" },
+};
+
+// Live streams through the server's SFU: the host uploads ONE copy whatever the
+// audience, so screen share can be 1080p30. Each video goes out as two
+// simulcast layers; the server gives every viewer the one their connection
+// can take instead of stalling them all.
+export const SFU_SCREEN_CONSTRAINTS = {
+  width: { max: 1920 },
+  height: { max: 1080 },
+  frameRate: { ideal: 30, max: 30 },
+};
+export const SFU_LAYERS = {
+  camera: [
+    { scaleResolutionDownBy: 4, maxBitrate: 150_000, maxFramerate: 15 },
+    { scaleResolutionDownBy: 1, maxBitrate: 1_200_000, maxFramerate: 24 },
+  ],
+  // Server CPU grows with bitrate x viewers: 1.5 Mbps keeps 30 viewers inside
+  // the Micro's 1/8 OCPU (load-tested); slides and code need far less anyway.
+  screen: [
+    { scaleResolutionDownBy: 2, maxBitrate: 400_000, maxFramerate: 15 },
+    { scaleResolutionDownBy: 1, maxBitrate: 1_500_000, maxFramerate: 30 },
+  ],
 };
 
 export const STREAM_CATEGORIES = [
